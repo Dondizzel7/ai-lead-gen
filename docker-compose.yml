@@ -1,0 +1,227 @@
+// Docker configuration for the Autonomous Recruitment System
+// This file defines the Docker setup for containerizing the web application
+
+version: '3.8'
+
+services:
+  # Frontend service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: recruitment-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - REACT_APP_API_URL=http://backend:5000/api
+    depends_on:
+      - backend
+    restart: always
+    networks:
+      - recruitment-network
+    volumes:
+      - frontend-build:/app/build
+      - frontend-node-modules:/app/node_modules
+
+  # Backend service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: recruitment-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongodb:27017/recruitment-system
+      - JWT_SECRET=${JWT_SECRET}
+      - FRONTEND_URL=http://frontend:3000
+      - CORS_ORIGINS=http://frontend:3000
+      - SOURCING_AI_ENDPOINT=http://sourcing-ai:3001/api/sourcing
+      - SCREENING_AI_ENDPOINT=http://screening-ai:3002/api/screening
+      - SCHEDULING_AI_ENDPOINT=http://scheduling-system:3003/api/scheduling
+      - EVALUATION_AI_ENDPOINT=http://evaluation-ai:3004/api/evaluation
+      - HIRING_WORKFLOW_AI_ENDPOINT=http://hiring-workflow:3005/api/hiring
+    depends_on:
+      - mongodb
+      - sourcing-ai
+      - screening-ai
+      - scheduling-system
+      - evaluation-ai
+      - hiring-workflow
+    restart: always
+    networks:
+      - recruitment-network
+    volumes:
+      - backend-uploads:/app/uploads
+      - backend-logs:/app/logs
+      - backend-node-modules:/app/node_modules
+
+  # MongoDB service
+  mongodb:
+    image: mongo:latest
+    container_name: recruitment-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=recruitment-system
+    volumes:
+      - mongodb-data:/data/db
+    restart: always
+    networks:
+      - recruitment-network
+
+  # Sourcing AI service
+  sourcing-ai:
+    build:
+      context: ./sourcing_ai
+      dockerfile: Dockerfile
+    container_name: recruitment-sourcing-ai
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - MONGODB_URI=mongodb://mongodb:27017/recruitment-system
+      - LINKEDIN_API_KEY=${LINKEDIN_API_KEY}
+      - GITHUB_API_KEY=${GITHUB_API_KEY}
+      - STACKOVERFLOW_API_KEY=${STACKOVERFLOW_API_KEY}
+    depends_on:
+      - mongodb
+    restart: always
+    networks:
+      - recruitment-network
+    volumes:
+      - sourcing-ai-node-modules:/app/node_modules
+      - sourcing-ai-data:/app/data
+
+  # Screening AI service
+  screening-ai:
+    build:
+      context: ./screening_ai
+      dockerfile: Dockerfile
+    container_name: recruitment-screening-ai
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - MONGODB_URI=mongodb://mongodb:27017/recruitment-system
+    depends_on:
+      - mongodb
+    restart: always
+    networks:
+      - recruitment-network
+    volumes:
+      - screening-ai-node-modules:/app/node_modules
+      - screening-ai-data:/app/data
+
+  # Scheduling System service
+  scheduling-system:
+    build:
+      context: ./scheduling_system
+      dockerfile: Dockerfile
+    container_name: recruitment-scheduling-system
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+      - MONGODB_URI=mongodb://mongodb:27017/recruitment-system
+      - GOOGLE_CALENDAR_CLIENT_ID=${GOOGLE_CALENDAR_CLIENT_ID}
+      - GOOGLE_CALENDAR_CLIENT_SECRET=${GOOGLE_CALENDAR_CLIENT_SECRET}
+      - MICROSOFT_CALENDAR_CLIENT_ID=${MICROSOFT_CALENDAR_CLIENT_ID}
+      - MICROSOFT_CALENDAR_CLIENT_SECRET=${MICROSOFT_CALENDAR_CLIENT_SECRET}
+    depends_on:
+      - mongodb
+    restart: always
+    networks:
+      - recruitment-network
+    volumes:
+      - scheduling-system-node-modules:/app/node_modules
+      - scheduling-system-data:/app/data
+
+  # Evaluation AI service
+  evaluation-ai:
+    build:
+      context: ./evaluation_ai
+      dockerfile: Dockerfile
+    container_name: recruitment-evaluation-ai
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+      - MONGODB_URI=mongodb://mongodb:27017/recruitment-system
+    depends_on:
+      - mongodb
+    restart: always
+    networks:
+      - recruitment-network
+    volumes:
+      - evaluation-ai-node-modules:/app/node_modules
+      - evaluation-ai-data:/app/data
+
+  # Hiring Workflow service
+  hiring-workflow:
+    build:
+      context: ./hiring_workflow
+      dockerfile: Dockerfile
+    container_name: recruitment-hiring-workflow
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - MONGODB_URI=mongodb://mongodb:27017/recruitment-system
+    depends_on:
+      - mongodb
+    restart: always
+    networks:
+      - recruitment-network
+    volumes:
+      - hiring-workflow-node-modules:/app/node_modules
+      - hiring-workflow-data:/app/data
+
+  # Nginx service for reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: recruitment-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+      - frontend-build:/usr/share/nginx/html
+    depends_on:
+      - frontend
+      - backend
+    restart: always
+    networks:
+      - recruitment-network
+
+networks:
+  recruitment-network:
+    driver: bridge
+
+volumes:
+  mongodb-data:
+  frontend-build:
+  frontend-node-modules:
+  backend-uploads:
+  backend-logs:
+  backend-node-modules:
+  sourcing-ai-node-modules:
+  sourcing-ai-data:
+  screening-ai-node-modules:
+  screening-ai-data:
+  scheduling-system-node-modules:
+  scheduling-system-data:
+  evaluation-ai-node-modules:
+  evaluation-ai-data:
+  hiring-workflow-node-modules:
+  hiring-workflow-data:
