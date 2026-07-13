@@ -9,7 +9,7 @@ walkthrough.
 
 | File | What it is |
 |---|---|
-| `lead-followup-demo.mp4` | Final rendered video (silent master, 1280×720 @ 30 fps, ~2:05). The narrated version is assembled in Descript. |
+|  `lead-followup-demo.mp4` | Final rendered video (silent master, 1280×720 @ 30 fps, ~2:05). The narrated version is assembled in Descript. |
 | `ghl-followup-demo.html` | The animated demo itself — a self-contained HTML page that plays through 9 scenes (pipeline, SMS, workflow builder, quote, calendar, dashboard). Open in a browser and run `startDemo()` in the console to watch it live. |
 | `frames.mjs` | Deterministic renderer: drives the page frame-by-frame with Chrome DevTools virtual time and pipes exact 30 fps frames into ffmpeg. No wall-clock drift, so narration stays in sync. |
 | `record.mjs` | Simpler real-time Playwright screen recorder (kept for reference; the screencast timebase drifts, so `frames.mjs` is the one to use). |
