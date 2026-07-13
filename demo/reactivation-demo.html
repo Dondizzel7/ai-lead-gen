@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Client Reactivation System — Tutorial</title>
+<style>
+  :root{
+    --navy:#0f172a; --navy2:#1e293b; --panel:#ffffff; --bg:#f1f5f9;
+    --brand:#2563eb; --brand2:#3b82f6; --green:#16a34a; --amber:#d97706;
+    --ink:#0f172a; --mut:#64748b; --line:#e2e8f0;
+    --sms-out:#2563eb; --sms-in:#e2e8f0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1280px;height:720px;overflow:hidden;background:#0b1220;
+    font-family:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:var(--ink)}
+
+  .scene{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .6s ease}
+  .scene.active{opacity:1;pointer-events:auto}
+  .step{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+  .step.on{opacity:1;transform:none}
+  .step.pop{transform:scale(.85)}
+  .step.pop.on{transform:scale(1)}
+  .step.slide-r{transform:translateX(40px)}
+  .step.slide-r.on{transform:none}
+
+  .title-card{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;
+    background:radial-gradient(1000px 600px at 30% 20%,#1d3a8a 0%,#0b1220 60%),#0b1220;color:#fff;text-align:center}
+  .title-card .kicker{font-size:20px;letter-spacing:4px;text-transform:uppercase;color:#93c5fd;font-weight:600}
+  .title-card h1{font-size:60px;font-weight:800;margin:18px 0 10px;line-height:1.12}
+  .title-card h1 .hl{color:#60a5fa}
+  .title-card .sub{font-size:26px;color:#cbd5e1;max-width:860px;line-height:1.5}
+  .flow-pills{display:flex;gap:14px;margin-top:44px;align-items:center}
+  .flow-pills .pill{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);
+    border-radius:999px;padding:12px 22px;font-size:19px;font-weight:600;color:#e2e8f0}
+  .flow-pills .arr{color:#60a5fa;font-size:22px;font-weight:700}
+  .cta-btn{margin-top:46px;background:var(--brand);color:#fff;font-size:24px;font-weight:700;
+    padding:18px 44px;border-radius:14px;box-shadow:0 12px 40px rgba(37,99,235,.45)}
+
+  .crm{display:flex;height:100%;background:var(--bg)}
+  .sidebar{width:210px;background:var(--navy);color:#cbd5e1;padding:18px 0;flex-shrink:0;display:flex;flex-direction:column}
+  .logo{display:flex;align-items:center;gap:10px;padding:4px 18px 18px;color:#fff;font-weight:800;font-size:17px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .logo .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+    display:flex;align-items:center;justify-content:center;font-size:16px}
+  .nav{margin-top:14px;font-size:14.5px}
+  .nav div{padding:10px 18px;display:flex;gap:10px;align-items:center;border-left:3px solid transparent}
+  .nav div.sel{background:rgba(59,130,246,.15);color:#fff;border-left-color:#3b82f6}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{height:56px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;
+    padding:0 22px;gap:14px;flex-shrink:0}
+  .topbar .pg{font-weight:700;font-size:17px}
+  .topbar .crumb{color:var(--mut);font-size:14px}
+  .topbar .spacer{flex:1}
+  .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#ef4444);
+    color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+  .content{flex:1;padding:20px 22px;overflow:hidden;position:relative}
+
+  /* contacts table */
+  .filters{display:flex;gap:10px;align-items:center;margin-bottom:14px}
+  .fchip{background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:8px 16px;font-size:13.5px;font-weight:600;color:var(--mut)}
+  .fchip.hot{border-color:var(--brand);color:var(--brand);background:#eff6ff}
+  .seg-count{margin-left:auto;background:var(--navy);color:#fff;border-radius:10px;padding:9px 16px;font-size:14px;font-weight:700}
+  .ctable{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .crow{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--line);font-size:14px}
+  .crow.hd{background:#f8fafc;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);font-weight:700}
+  .crow .c-name{width:190px;font-weight:700}
+  .crow .c-svc{width:220px;color:var(--mut)}
+  .crow .c-last{width:170px}
+  .crow .c-val{width:110px;font-weight:700;color:var(--ink)}
+  .dormant{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:#fee2e2;color:#b91c1c}
+  .dormant.mid{background:#fef3c7;color:#b45309}
+  .crow.pick{background:#eff6ff}
+  .crow .ck{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+  .crow.pick .ck{background:var(--brand);border-color:var(--brand)}
+
+  /* phone */
+  .phone{width:300px;height:560px;background:#0b0f19;border-radius:38px;padding:12px;box-shadow:0 24px 60px rgba(2,6,23,.5);flex-shrink:0}
+  .phone .scr{background:#fff;height:100%;border-radius:28px;overflow:hidden;display:flex;flex-direction:column}
+  .phone .ph-top{background:#f8fafc;border-bottom:1px solid var(--line);padding:14px 14px 10px;text-align:center}
+  .phone .ph-top .who{font-weight:700;font-size:14px}
+  .phone .ph-top .num{font-size:11px;color:var(--mut)}
+  .msgs{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:8px;overflow:hidden;justify-content:flex-end}
+  .msg{max-width:82%;padding:9px 12px;border-radius:16px;font-size:12.8px;line-height:1.45}
+  .msg.out{align-self:flex-end;background:var(--sms-out);color:#fff;border-bottom-right-radius:5px}
+  .msg.in{align-self:flex-start;background:var(--sms-in);color:var(--ink);border-bottom-left-radius:5px}
+  .msg .tm{display:block;font-size:9.5px;opacity:.7;margin-top:3px}
+  .day-chip{align-self:center;background:#f1f5f9;color:var(--mut);font-size:10.5px;font-weight:600;padding:3px 12px;border-radius:999px}
+
+  .split{display:flex;gap:34px;align-items:center;justify-content:center;height:100%;padding:0 40px}
+  .panel{background:#fff;border-radius:16px;border:1px solid var(--line);box-shadow:0 10px 30px rgba(15,23,42,.08);padding:22px}
+
+  .wf{width:430px}
+  .wf h2{font-size:19px;margin-bottom:4px}
+  .wf .ws{color:var(--mut);font-size:13.5px;margin-bottom:18px}
+  .node{display:flex;gap:12px;align-items:center;background:#f8fafc;border:1.5px solid var(--line);
+    border-radius:12px;padding:12px 14px;position:relative}
+  .node+.node-gap{height:22px;width:2px;background:var(--line);margin-left:33px}
+  .node .nic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  .nic.tr{background:#fef3c7}
+  .nic.sms{background:#dbeafe}
+  .nic.em{background:#ede9fe}
+  .nic.wt{background:#f1f5f9}
+  .nic.br{background:#dcfce7}
+  .node b{font-size:14px;display:block}
+  .node span{font-size:12px;color:var(--mut)}
+  .node .st{margin-left:auto;font-size:11px;font-weight:700;color:var(--mut)}
+  .node.lit{border-color:var(--brand);background:#eff6ff;box-shadow:0 4px 14px rgba(37,99,235,.18)}
+  .node.lit .st{color:var(--green)}
+  .node.done{border-color:#86efac;background:#f0fdf4}
+  .node.done .st{color:var(--green)}
+
+  /* campaign card */
+  .camp{width:470px}
+  .camp .ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .camp .ch h2{font-size:20px}
+  .camp .tag{background:#dcfce7;color:#15803d;font-size:11.5px;font-weight:800;padding:4px 12px;border-radius:999px}
+  .sms-preview{background:#f8fafc;border:1.5px dashed #cbd5e1;border-radius:12px;padding:14px;font-size:13.5px;line-height:1.55;color:var(--ink)}
+  .sms-preview .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--mut);font-weight:700;margin-bottom:6px}
+  .camp .meta{display:flex;gap:12px;margin-top:14px}
+  .camp .meta div{flex:1;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--mut)}
+  .camp .meta b{display:block;font-size:15px;color:var(--ink);margin-top:2px}
+  .launch{margin-top:16px;background:var(--brand);color:#fff;text-align:center;font-weight:800;font-size:16px;
+    padding:14px;border-radius:12px;box-shadow:0 10px 26px rgba(37,99,235,.35)}
+  .launch.sent{background:var(--green);box-shadow:0 10px 26px rgba(22,163,74,.35)}
+
+  .kpi-chip{position:absolute;bottom:26px;left:50%;transform:translate(-50%,14px);background:var(--navy);color:#fff;
+    padding:14px 26px;border-radius:14px;font-size:17px;font-weight:600;box-shadow:0 14px 34px rgba(2,6,23,.45);z-index:6;
+    max-width:940px;text-align:center}
+  .kpi-chip em{color:#4ade80;font-style:normal;font-weight:800}
+  .toast{position:absolute;top:16px;right:22px;background:var(--navy);color:#fff;padding:14px 18px;border-radius:12px;
+    display:flex;gap:12px;align-items:center;font-size:14.5px;box-shadow:0 14px 34px rgba(2,6,23,.45);z-index:5}
+  .toast .ic{width:34px;height:34px;border-radius:9px;background:#16a34a;display:flex;align-items:center;justify-content:center;font-size:17px}
+  .toast b{display:block;font-size:14.5px}
+  .toast span{font-size:12.5px;color:#cbd5e1}
+  .cap{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(2,6,23,.82);color:#fff;
+    padding:10px 22px;border-radius:10px;font-size:16.5px;font-weight:500;white-space:nowrap;z-index:8}
+
+  /* calendar */
+  .cal{width:640px}
+  .cal h2{font-size:18px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+  .cal h2 span{font-size:13px;color:var(--mut);font-weight:500}
+  .cal-grid{display:grid;grid-template-columns:52px repeat(5,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .cal-grid .hd{background:#f8fafc;font-size:12px;font-weight:700;text-align:center;padding:8px 0;border-bottom:1px solid var(--line);border-left:1px solid var(--line)}
+  .cal-grid .tm-lbl{font-size:10.5px;color:var(--mut);text-align:right;padding:4px 6px 0 0;height:52px;border-top:1px solid var(--line)}
+  .cal-grid .cell{border-left:1px solid var(--line);border-top:1px solid var(--line);height:52px;position:relative}
+  .appt{position:absolute;inset:2px;background:#2563eb;border-radius:7px;color:#fff;font-size:9.5px;
+    padding:3px 6px;line-height:1.25;box-shadow:0 6px 16px rgba(37,99,235,.4);overflow:hidden}
+  .appt b{display:block;font-size:10px}
+  .appt.g{background:var(--green)}
+
+  /* pipeline */
+  .kanban{display:flex;gap:14px;height:100%}
+  .col{flex:1;background:#e9eef5;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+  .col h3{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--mut);display:flex;justify-content:space-between;align-items:center}
+  .col h3 .cnt{background:#fff;border-radius:999px;padding:1px 9px;font-size:12px;color:var(--ink)}
+  .card{background:#fff;border-radius:10px;padding:12px 13px;box-shadow:0 1px 3px rgba(15,23,42,.08);border:1px solid var(--line)}
+  .card .nm{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:8px}
+  .card .dt{color:var(--mut);font-size:12.5px;margin-top:4px}
+  .card .val{margin-top:8px;font-size:13px;font-weight:700;color:var(--green)}
+  .badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .badge.new{background:#dcfce7;color:#15803d}
+  .badge.src{background:#dbeafe;color:#1d4ed8}
+  .card.hero{border:2px solid var(--brand);box-shadow:0 8px 24px rgba(37,99,235,.25)}
+
+  /* dashboard */
+  .dash{padding:8px 10px;height:100%;display:flex;flex-direction:column;gap:16px}
+  .stat-row{display:flex;gap:16px}
+  .stat{flex:1;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:0 4px 14px rgba(15,23,42,.05)}
+  .stat .lb{font-size:13px;color:var(--mut);font-weight:600}
+  .stat .vl{font-size:38px;font-weight:800;margin-top:6px;color:var(--ink)}
+  .stat .vl small{font-size:18px;color:var(--mut);font-weight:600}
+  .stat .dl{font-size:12.5px;font-weight:700;color:var(--green);margin-top:4px}
+  .chart-card{flex:1;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px;box-shadow:0 4px 14px rgba(15,23,42,.05)}
+  .chart-card h3{font-size:15px;margin-bottom:14px}
+  .bars{display:flex;align-items:flex-end;gap:26px;height:300px;padding:0 8px}
+  .bgrp{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+  .bar{width:56px;border-radius:8px 8px 3px 3px;height:0;transition:height 1.2s cubic-bezier(.22,.9,.36,1)}
+  .bar.a{background:#cbd5e1}
+  .bar.b{background:var(--brand)}
+  .bgrp .bl{font-size:12px;color:var(--mut);font-weight:600;text-align:center}
+</style>
+</head>
+<body>
+
+<!-- ============ SCENE 1: INTRO ============ -->
+<section class="scene" id="s1">
+  <div class="title-card">
+    <div class="kicker step" data-t="300">High-Rise Solution · Client Reactivation System</div>
+    <h1 class="step" data-t="800">Your Old Customers Are<br><span class="hl">New Revenue</span></h1>
+    <div class="sub step" data-t="1800">Wake up the customer list you already own — automatic texts,<br>AI conversations, and booked appointments. No ad spend.</div>
+    <div class="flow-pills">
+      <div class="pill step pop" data-t="4000">🗂 Dormant List</div><div class="arr step" data-t="4500">→</div>
+      <div class="pill step pop" data-t="4800">💬 We-Miss-You Text</div><div class="arr step" data-t="5300">→</div>
+      <div class="pill step pop" data-t="5600">🤖 AI Handles Replies</div><div class="arr step" data-t="6100">→</div>
+      <div class="pill step pop" data-t="6400">📅 Booked & Paid</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCENE 2: FIND DORMANT CUSTOMERS ============ -->
+<section class="scene" id="s2">
+  <div class="crm">
+    <aside class="sidebar">
+      <div class="logo"><div class="mark">⚡</div>High-Rise Solution</div>
+      <div class="nav">
+        <div>🏠 Dashboard</div>
+        <div>📋 Opportunities</div>
+        <div>💬 Conversations</div>
+        <div>🔁 Automations</div>
+        <div>📅 Calendar</div>
+        <div class="sel">👥 Contacts</div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar"><span class="pg">Contacts</span><span class="crumb">Smart list: Dormant customers</span><span class="spacer"></span><div class="avatar">HS</div></div>
+      <div class="content">
+        <div class="filters">
+          <div class="fchip">All contacts · 3,918</div>
+          <div class="fchip hot step pop" data-t="1000">⏰ No visit in 6+ months</div>
+          <div class="fchip hot step pop" data-t="1600">✔ Valid mobile number</div>
+          <div class="seg-count step slide-r" data-t="2400">1,240 dormant customers found</div>
+        </div>
+        <div class="ctable">
+          <div class="crow hd"><div class="ck"></div><div class="c-name">Customer</div><div class="c-svc">Last service</div><div class="c-last">Last visit</div><div class="c-val">Lifetime value</div><div></div></div>
+          <div class="crow pick step" data-t="3000"><div class="ck">✓</div><div class="c-name">Karen Whitfield</div><div class="c-svc">A/C tune-up</div><div class="c-last">14 months ago</div><div class="c-val">$1,340</div><div class="dormant">DORMANT</div></div>
+          <div class="crow pick step" data-t="3300"><div class="ck">✓</div><div class="c-name">Luis Herrera</div><div class="c-svc">Furnace repair</div><div class="c-last">11 months ago</div><div class="c-val">$2,180</div><div class="dormant">DORMANT</div></div>
+          <div class="crow pick step" data-t="3600"><div class="ck">✓</div><div class="c-name">Beth Callahan</div><div class="c-svc">Duct cleaning</div><div class="c-last">9 months ago</div><div class="c-val">$760</div><div class="dormant mid">INACTIVE</div></div>
+          <div class="crow pick step" data-t="3900"><div class="ck">✓</div><div class="c-name">Devon Marsh</div><div class="c-svc">A/C install</div><div class="c-last">8 months ago</div><div class="c-val">$6,420</div><div class="dormant mid">INACTIVE</div></div>
+          <div class="crow pick step" data-t="4200"><div class="ck">✓</div><div class="c-name">Nina Petrov</div><div class="c-svc">Thermostat + tune-up</div><div class="c-last">13 months ago</div><div class="c-val">$980</div><div class="dormant">DORMANT</div></div>
+          <div class="crow pick step" data-t="4500"><div class="ck">✓</div><div class="c-name">George Adeyemi</div><div class="c-svc">Furnace tune-up</div><div class="c-last">12 months ago</div><div class="c-val">$1,115</div><div class="dormant">DORMANT</div></div>
+        </div>
+        <div class="toast step slide-r" data-t="5600">
+          <div class="ic">🎯</div>
+          <div><b>Smart segment saved</b><span>“Dormant 6mo+” · updates itself automatically</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cap step" data-t="6400">Customers you already won — found automatically, no spreadsheets.</div>
+</section>
+
+<!-- ============ SCENE 3: LAUNCH CAMPAIGN ============ -->
+<section class="scene" id="s3">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="panel camp step pop" data-t="400">
+        <div class="ch"><h2>📣 Campaign: “We Miss You”</h2><div class="tag step" data-t="4800">LIVE</div></div>
+        <div class="sms-preview">
+          <div class="lbl">SMS template · personalized per customer</div>
+          Hi {{first_name}}! It's Comfort Air Heating &amp; Cooling 👋 It's been over a year since your last
+          {{last_service}} — this week past customers get <b>$40 off a full system tune-up</b>.
+          Want me to grab you a spot? Reply YES and I'll send times. (Reply STOP to opt out)
+        </div>
+        <div class="meta">
+          <div>Audience<b>1,240 dormant</b></div>
+          <div>Sending<b>Smart batches</b></div>
+          <div>Compliance<b>Auto opt-out</b></div>
+        </div>
+        <div class="launch step pop" data-t="3400" data-lite="4800">🚀 Launch Campaign</div>
+      </div>
+      <div class="panel wf step slide-r" data-t="5400">
+        <h2>⚙️ What happens next</h2>
+        <div class="ws">Fully automated from here</div>
+        <div class="node step" data-t="5800"><div class="nic sms">💬</div><div><b>Texts go out in batches</b><span>Throttled so replies stay manageable</span></div><div class="st">RUNNING</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="6600"><div class="nic tr">🤖</div><div><b>AI answers every reply</b><span>24/7 — nights &amp; weekends included</span></div><div class="st">ARMED ✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="7400"><div class="nic br">📅</div><div><b>Books straight to calendar</b><span>Confirmations + reminders included</span></div><div class="st">ARMED ✓</div></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 4: THE TEXT LANDS ============ -->
+<section class="scene" id="s4">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="phone step pop" data-t="400">
+        <div class="scr">
+          <div class="ph-top"><div class="who">Karen Whitfield</div><div class="num">Past customer · (555) 021-8834</div></div>
+          <div class="msgs">
+            <div class="day-chip">Today · 10:15 AM</div>
+            <div class="msg out step" data-t="1200">Hi Karen! It's Comfort Air Heating &amp; Cooling 👋 It's been over a year since your last A/C tune-up — this week past customers get <b>$40 off a full system tune-up</b>. Want me to grab you a spot? Reply YES and I'll send times.<span class="tm">10:15 AM · Delivered</span></div>
+            <div class="msg in step" data-t="4200">YES! Perfect timing actually, the AC has been making a weird noise 😅<span class="tm">10:22 AM</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel wf step slide-r" data-t="5200">
+        <h2>💬 Personal — at scale</h2>
+        <div class="ws">Every message uses the customer's real history</div>
+        <div class="node"><div class="nic sms">👤</div><div><b>Their name &amp; last service</b><span>“Karen” + “A/C tune-up”</span></div><div class="st">✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node"><div class="nic tr">🎁</div><div><b>A real offer, with urgency</b><span>$40 off · this week only</span></div><div class="st">✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node"><div class="nic wt">🛡</div><div><b>Built-in compliance</b><span>STOP opt-outs handled automatically</span></div><div class="st">✓</div></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 5: AI HANDLES THE CONVERSATION ============ -->
+<section class="scene" id="s5">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="phone">
+        <div class="scr">
+          <div class="ph-top"><div class="who">Karen Whitfield</div><div class="num">Past customer · (555) 021-8834</div></div>
+          <div class="msgs">
+            <div class="msg in">YES! Perfect timing actually, the AC has been making a weird noise 😅<span class="tm">10:22 AM</span></div>
+            <div class="msg out step" data-t="900">Glad we caught you at the right time, Karen! 🙌 We'll have the tech listen to that noise during the tune-up — it's included. I have <b>Thu 9:00 AM</b> or <b>Fri 1:30 PM</b> open. Which works better?<span class="tm">10:22 AM · AI reply</span></div>
+            <div class="msg in step" data-t="3400">Thursday 9am please. How long does it take?<span class="tm">10:24 AM</span></div>
+            <div class="msg out step" data-t="4900">About 60–75 minutes. You're booked for <b>Thu 9:00 AM</b> ✅ — with your $40 past-customer discount applied. Confirmation coming now, and a reminder the day before!<span class="tm">10:24 AM · AI reply</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel wf step slide-r" data-t="5800">
+        <h2>🤖 No staff time needed</h2>
+        <div class="ws">The AI carries the whole conversation</div>
+        <div class="node step" data-t="6200"><div class="nic sms">💬</div><div><b>Answers questions instantly</b><span>Pricing, duration, what's included</span></div><div class="st">✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="7000"><div class="nic br">📅</div><div><b>Offers real openings</b><span>Synced to your live calendar</span></div><div class="st">✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node lit step" data-t="7800"><div class="nic tr">✅</div><div><b>Closes the booking</b><span>Discount applied automatically</span></div><div class="st">DONE ✓</div></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 6: CALENDAR FILLS UP ============ -->
+<section class="scene" id="s6">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split" style="gap:26px">
+      <div class="panel cal step pop" data-t="400">
+        <h2>📅 Your Calendar <span>Week of Jul 20 · filling up from one campaign</span></h2>
+        <div class="cal-grid">
+          <div class="hd" style="border-left:none"></div><div class="hd">Mon 20</div><div class="hd">Tue 21</div><div class="hd">Wed 22</div><div class="hd">Thu 23</div><div class="hd">Fri 24</div>
+          <div class="tm-lbl">9 AM</div><div class="cell"><div class="appt step pop" data-t="1400">9:00<b>Luis Herrera · Tune-up</b></div></div><div class="cell"></div><div class="cell"></div><div class="cell"><div class="appt step pop" data-t="2000">9:00<b>Karen Whitfield · Tune-up</b></div></div><div class="cell"></div>
+          <div class="tm-lbl">11 AM</div><div class="cell"></div><div class="cell"><div class="appt step pop" data-t="2600">11:00<b>Nina Petrov · Tune-up</b></div></div><div class="cell"></div><div class="cell"></div><div class="cell"><div class="appt step pop" data-t="3200">11:00<b>Beth Callahan · Duct chk</b></div></div>
+          <div class="tm-lbl">1 PM</div><div class="cell"></div><div class="cell"></div><div class="cell"><div class="appt step pop" data-t="3800">1:30<b>George Adeyemi · Tune-up</b></div></div><div class="cell"></div><div class="cell"></div>
+          <div class="tm-lbl">3 PM</div><div class="cell"><div class="appt step pop" data-t="4400">3:00<b>Devon Marsh · System chk</b></div></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"><div class="appt step pop" data-t="5000">3:30<b>+ 4 more this week</b></div></div>
+        </div>
+        <div class="ws step" data-t="6000" style="margin-top:14px;font-size:13.5px">🔔 Every booking gets automatic confirmation + reminders — reactivated customers actually show up</div>
+      </div>
+    </div>
+    <div class="kpi-chip step" data-t="7000">📅 <em>One campaign</em> → a week of appointments from customers you already had</div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 7: TRACK IT IN THE PIPELINE ============ -->
+<section class="scene" id="s7">
+  <div class="crm">
+    <aside class="sidebar">
+      <div class="logo"><div class="mark">⚡</div>High-Rise Solution</div>
+      <div class="nav">
+        <div>🏠 Dashboard</div>
+        <div class="sel">📋 Opportunities</div>
+        <div>💬 Conversations</div>
+        <div>🔁 Automations</div>
+        <div>📅 Calendar</div>
+        <div>👥 Contacts</div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar"><span class="pg">Opportunities</span><span class="crumb">Pipeline: Client Reactivation</span><span class="spacer"></span><div class="avatar">HS</div></div>
+      <div class="content">
+        <div class="kanban">
+          <div class="col"><h3>Messaged <span class="cnt">1,240</span></h3>
+            <div class="card"><div class="nm">Priya Shah</div><div class="dt">Sent Day 1 · no reply yet</div><div class="val">LTV $890</div></div>
+            <div class="card"><div class="nm">Tom Becker</div><div class="dt">Sent Day 1 · delivered</div><div class="val">LTV $2,300</div></div>
+          </div>
+          <div class="col"><h3>Replied <span class="cnt">384</span></h3>
+            <div class="card step pop" data-t="1200"><div class="nm">Devon Marsh <span class="badge src">HOT</span></div><div class="dt">“Does the offer cover 2 units?”</div><div class="val">LTV $6,420</div></div>
+            <div class="card"><div class="nm">Beth Callahan</div><div class="dt">AI answering questions</div><div class="val">LTV $760</div></div>
+          </div>
+          <div class="col"><h3>Booked ✅ <span class="cnt">87</span></h3>
+            <div class="card hero step pop" data-t="2400"><div class="nm">Karen Whitfield <span class="badge new">BOOKED</span></div><div class="dt">Thu 9:00 AM · $40 offer applied</div><div class="val">Job est. $220+</div></div>
+            <div class="card"><div class="nm">Luis Herrera</div><div class="dt">Mon 9:00 AM · confirmed</div><div class="val">Job est. $220+</div></div>
+            <div class="card"><div class="nm">Nina Petrov</div><div class="dt">Tue 11:00 AM · confirmed</div><div class="val">Job est. $220+</div></div>
+          </div>
+          <div class="col"><h3>Completed 💰 <span class="cnt">41</span></h3>
+            <div class="card"><div class="nm">George Adeyemi</div><div class="dt">Paid · left 5★ review</div><div class="val">$260 collected</div></div>
+            <div class="card"><div class="nm">Dana Ruiz</div><div class="dt">Paid · upsold duct clean</div><div class="val">$540 collected</div></div>
+          </div>
+        </div>
+        <div class="toast step slide-r" data-t="3600">
+          <div class="ic">💰</div>
+          <div><b>New booking from reactivation</b><span>Karen Whitfield · Thu 9:00 AM · auto-booked by AI</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cap step" data-t="5000">Every message, reply, booking and dollar — tracked in one pipeline.</div>
+</section>
+
+<!-- ============ SCENE 8: RESULTS DASHBOARD ============ -->
+<section class="scene" id="s8">
+  <div class="crm">
+    <aside class="sidebar">
+      <div class="logo"><div class="mark">⚡</div>High-Rise Solution</div>
+      <div class="nav">
+        <div class="sel">🏠 Dashboard</div>
+        <div>📋 Opportunities</div>
+        <div>💬 Conversations</div>
+        <div>🔁 Automations</div>
+        <div>📅 Calendar</div>
+        <div>👥 Contacts</div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar"><span class="pg">Dashboard</span><span class="crumb">Reactivation campaign · 30 days</span><span class="spacer"></span><div class="avatar">HS</div></div>
+      <div class="content"><div class="dash">
+        <div class="stat-row">
+          <div class="stat step" data-t="400"><div class="lb">Messages sent</div><div class="vl"><span data-count="1240" data-dur="1400">0</span></div><div class="dl">100% automated</div></div>
+          <div class="stat step" data-t="800"><div class="lb">Reply rate</div><div class="vl"><span data-count="31" data-dur="1400">0</span><small> %</small></div><div class="dl">384 conversations handled by AI</div></div>
+          <div class="stat step" data-t="1200"><div class="lb">Appointments booked</div><div class="vl"><span data-count="87" data-dur="1600">0</span></div><div class="dl">zero staff hours spent</div></div>
+          <div class="stat step" data-t="1600"><div class="lb">Revenue recovered</div><div class="vl">$<span data-count="23400" data-dur="1800">0</span></div><div class="dl">from a list that cost $0</div></div>
+        </div>
+        <div class="chart-card step" data-t="2400">
+          <h3>Revenue from dormant customers — before vs. with Client Reactivation</h3>
+          <div class="bars">
+            <div class="bgrp"><div class="bar a" data-h="40"></div><div class="bl">Month 1<br>(before)</div></div>
+            <div class="bgrp"><div class="bar a" data-h="46"></div><div class="bl">Month 2<br>(before)</div></div>
+            <div class="bgrp"><div class="bar b" data-h="180"></div><div class="bl">Month 3<br>(reactivation)</div></div>
+            <div class="bgrp"><div class="bar b" data-h="232"></div><div class="bl">Month 4<br>(reactivation)</div></div>
+            <div class="bgrp"><div class="bar b" data-h="266"></div><div class="bl">Month 5<br>(reactivation)</div></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCENE 9: OUTRO ============ -->
+<section class="scene" id="s9">
+  <div class="title-card">
+    <div class="kicker step" data-t="300">High-Rise Solution · Client Reactivation</div>
+    <h1 class="step" data-t="800" style="font-size:52px">No ads. No new leads to buy.<br><span class="hl">Just revenue you already own.</span></h1>
+    <div class="sub step" data-t="2200">Your customer list is sitting on money —<br>let's wake it up.</div>
+    <div class="cta-btn step pop" data-t="4200">📅 Book Your Reactivation Call</div>
+  </div>
+</section>
+
+<script>
+const SCENE_IDS = ['s1','s2','s3','s4','s5','s6','s7','s8','s9'];
+let DUR = [13000,10000,13000,11000,11000,11000,12000,13000,12000];
+
+function animateCount(el, target, dur){
+  let acc = -1, last = null;
+  function tick(now){
+    if(acc < 0){ acc = 0; }
+    else { const d = now - last; acc += (d > 0 ? d : 1000/60); }
+    last = now;
+    const p = Math.min(acc/dur, 1);
+    const eased = 1-Math.pow(1-p,3);
+    el.textContent = Math.round(target*eased).toLocaleString();
+    if(p<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function playScene(idx){
+  const sc = document.getElementById(SCENE_IDS[idx]);
+  document.querySelectorAll('.scene.active').forEach(s=>s.classList.remove('active'));
+  sc.classList.add('active');
+  sc.querySelectorAll('[data-t]').forEach(el=>{
+    const t = +el.dataset.t;
+    setTimeout(()=>{
+      el.classList.add('on');
+      el.querySelectorAll('[data-count]').forEach(cEl=>animateCount(cEl,+cEl.dataset.count,+cEl.dataset.dur||1500));
+      el.querySelectorAll('.bar[data-h]').forEach(b=>{ requestAnimationFrame(()=>b.style.height=b.dataset.h+'px'); });
+    }, t);
+  });
+  sc.querySelectorAll('[data-lite]').forEach(el=>setTimeout(()=>el.classList.add('lit','sent'), +el.dataset.lite));
+  sc.querySelectorAll('[data-done]').forEach(el=>setTimeout(()=>{el.classList.remove('lit');el.classList.add('done');}, +el.dataset.done));
+}
+
+window.startDemo = function(durations){
+  if(durations && durations.length===SCENE_IDS.length) DUR = durations;
+  let t = 0;
+  SCENE_IDS.forEach((id,i)=>{
+    setTimeout(()=>playScene(i), t);
+    t += DUR[i];
+  });
+  window.__demoTotal = t;
+  return t;
+};
+</script>
+</body>
+</html>

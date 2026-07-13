@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Social Media Autopilot — Tutorial</title>
+<style>
+  :root{
+    --navy:#0f172a; --navy2:#1e293b; --panel:#ffffff; --bg:#f1f5f9;
+    --brand:#2563eb; --brand2:#3b82f6; --green:#16a34a; --amber:#d97706;
+    --ink:#0f172a; --mut:#64748b; --line:#e2e8f0;
+    --sms-out:#2563eb; --sms-in:#e2e8f0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1280px;height:720px;overflow:hidden;background:#0b1220;
+    font-family:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:var(--ink)}
+
+  .scene{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .6s ease}
+  .scene.active{opacity:1;pointer-events:auto}
+  .step{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+  .step.on{opacity:1;transform:none}
+  .step.pop{transform:scale(.85)}
+  .step.pop.on{transform:scale(1)}
+  .step.slide-r{transform:translateX(40px)}
+  .step.slide-r.on{transform:none}
+
+  .title-card{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;
+    background:radial-gradient(1000px 600px at 30% 20%,#1d3a8a 0%,#0b1220 60%),#0b1220;color:#fff;text-align:center}
+  .title-card .kicker{font-size:20px;letter-spacing:4px;text-transform:uppercase;color:#93c5fd;font-weight:600}
+  .title-card h1{font-size:58px;font-weight:800;margin:18px 0 10px;line-height:1.12}
+  .title-card h1 .hl{color:#60a5fa}
+  .title-card .sub{font-size:26px;color:#cbd5e1;max-width:880px;line-height:1.5}
+  .flow-pills{display:flex;gap:14px;margin-top:44px;align-items:center}
+  .flow-pills .pill{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);
+    border-radius:999px;padding:12px 22px;font-size:19px;font-weight:600;color:#e2e8f0}
+  .flow-pills .arr{color:#60a5fa;font-size:22px;font-weight:700}
+  .cta-btn{margin-top:46px;background:var(--brand);color:#fff;font-size:24px;font-weight:700;
+    padding:18px 44px;border-radius:14px;box-shadow:0 12px 40px rgba(37,99,235,.45)}
+
+  .crm{display:flex;height:100%;background:var(--bg)}
+  .sidebar{width:210px;background:var(--navy);color:#cbd5e1;padding:18px 0;flex-shrink:0;display:flex;flex-direction:column}
+  .logo{display:flex;align-items:center;gap:10px;padding:4px 18px 18px;color:#fff;font-weight:800;font-size:17px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .logo .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+    display:flex;align-items:center;justify-content:center;font-size:16px}
+  .nav{margin-top:14px;font-size:14.5px}
+  .nav div{padding:10px 18px;display:flex;gap:10px;align-items:center;border-left:3px solid transparent}
+  .nav div.sel{background:rgba(59,130,246,.15);color:#fff;border-left-color:#3b82f6}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{height:56px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;
+    padding:0 22px;gap:14px;flex-shrink:0}
+  .topbar .pg{font-weight:700;font-size:17px}
+  .topbar .crumb{color:var(--mut);font-size:14px}
+  .topbar .spacer{flex:1}
+  .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#ef4444);
+    color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+  .content{flex:1;padding:20px 22px;overflow:hidden;position:relative}
+
+  .split{display:flex;gap:34px;align-items:center;justify-content:center;height:100%;padding:0 40px}
+  .panel{background:#fff;border-radius:16px;border:1px solid var(--line);box-shadow:0 10px 30px rgba(15,23,42,.08);padding:22px}
+
+  .wf{width:430px}
+  .wf h2{font-size:19px;margin-bottom:4px}
+  .wf .ws{color:var(--mut);font-size:13.5px;margin-bottom:18px}
+  .node{display:flex;gap:12px;align-items:center;background:#f8fafc;border:1.5px solid var(--line);
+    border-radius:12px;padding:12px 14px;position:relative}
+  .node+.node-gap{height:22px;width:2px;background:var(--line);margin-left:33px}
+  .node .nic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  .nic.tr{background:#fef3c7}
+  .nic.sms{background:#dbeafe}
+  .nic.em{background:#ede9fe}
+  .nic.wt{background:#f1f5f9}
+  .nic.br{background:#dcfce7}
+  .node b{font-size:14px;display:block}
+  .node span{font-size:12px;color:var(--mut)}
+  .node .st{margin-left:auto;font-size:11px;font-weight:700;color:var(--mut)}
+  .node.lit{border-color:var(--brand);background:#eff6ff;box-shadow:0 4px 14px rgba(37,99,235,.18)}
+  .node.lit .st{color:var(--green)}
+
+  /* brand setup */
+  .brandp{width:470px}
+  .brandp h2{font-size:20px;margin-bottom:4px}
+  .brandp .ws{color:var(--mut);font-size:13.5px;margin-bottom:16px}
+  .frow{display:flex;gap:10px;margin-bottom:10px}
+  .field{flex:1;background:#f8fafc;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px}
+  .field .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);font-weight:700}
+  .field b{font-size:13.5px;display:block;margin-top:2px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .chip{background:#dbeafe;color:#1d4ed8;font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px}
+  .plats{display:flex;gap:10px;margin-top:6px}
+  .plat{flex:1;display:flex;align-items:center;gap:8px;background:#f8fafc;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13px;font-weight:700}
+  .plat .dot{width:10px;height:10px;border-radius:50%;background:#cbd5e1}
+  .plat.onn{border-color:#86efac;background:#f0fdf4}
+  .plat.onn .dot{background:var(--green)}
+
+  /* content calendar */
+  .ccal{width:660px}
+  .ccal h2{font-size:18px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+  .ccal h2 span{font-size:13px;color:var(--mut);font-weight:500}
+  .cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .cgrid .dhd{font-size:11px;text-transform:uppercase;color:var(--mut);font-weight:700;text-align:center;padding:2px 0}
+  .dcell{background:#f8fafc;border:1px solid var(--line);border-radius:9px;height:64px;padding:5px 7px;position:relative}
+  .dcell .dn{font-size:10.5px;color:var(--mut);font-weight:700}
+  .pchip{margin-top:3px;font-size:9.5px;font-weight:700;border-radius:6px;padding:2.5px 6px;color:#fff;background:var(--brand);white-space:nowrap;overflow:hidden}
+  .pchip.tip{background:#7c3aed}
+  .pchip.offer{background:#d97706}
+  .pchip.rev{background:#16a34a}
+  .pchip.ba{background:#0891b2}
+
+  /* social post mock */
+  .post{width:400px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 10px 30px rgba(15,23,42,.12)}
+  .post .ph{display:flex;align-items:center;gap:10px;padding:12px 14px}
+  .post .pav{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px}
+  .post .ph b{font-size:14px;display:block}
+  .post .ph span{font-size:11.5px;color:var(--mut)}
+  .post .pimg{height:210px;background:linear-gradient(135deg,#1d4ed8,#0891b2);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:0 26px}
+  .post .pimg .big{font-size:40px}
+  .post .pimg b{font-size:21px;line-height:1.3;margin-top:8px}
+  .post .pcap{padding:12px 14px;font-size:12.8px;line-height:1.5}
+  .post .pcap .tags{color:#1d4ed8;margin-top:5px;font-size:12px}
+  .post .pfoot{display:flex;gap:16px;padding:0 14px 12px;font-size:12px;color:var(--mut);font-weight:600}
+  .plat-badges{display:flex;gap:8px;margin-top:14px;justify-content:center}
+  .pb{background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:7px 16px;font-size:12.5px;font-weight:800}
+  .pb.onn{border-color:#86efac;background:#f0fdf4;color:#15803d}
+
+  /* publish queue */
+  .queue{width:560px}
+  .qrow2{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--line);font-size:13.5px}
+  .qrow2 .qtime{width:110px;color:var(--mut);font-weight:600;font-size:12.5px}
+  .qrow2 .qname{flex:1;font-weight:700}
+  .qrow2 .qplat{display:flex;gap:5px;font-size:11px;font-weight:800;color:var(--mut)}
+  .qst{font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:#f1f5f9;color:var(--mut)}
+  .qrow2.live .qst{background:#dcfce7;color:#15803d}
+
+  /* phone / DM */
+  .phone{width:300px;height:560px;background:#0b0f19;border-radius:38px;padding:12px;box-shadow:0 24px 60px rgba(2,6,23,.5);flex-shrink:0}
+  .phone .scr{background:#fff;height:100%;border-radius:28px;overflow:hidden;display:flex;flex-direction:column}
+  .phone .ph-top{background:#f8fafc;border-bottom:1px solid var(--line);padding:14px 14px 10px;text-align:center}
+  .phone .ph-top .who{font-weight:700;font-size:14px}
+  .phone .ph-top .num{font-size:11px;color:var(--mut)}
+  .msgs{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:8px;overflow:hidden;justify-content:flex-end}
+  .msg{max-width:84%;padding:9px 12px;border-radius:16px;font-size:12.8px;line-height:1.45}
+  .msg.out{align-self:flex-end;background:var(--sms-out);color:#fff;border-bottom-right-radius:5px}
+  .msg.in{align-self:flex-start;background:var(--sms-in);color:var(--ink);border-bottom-left-radius:5px}
+  .msg .tm{display:block;font-size:9.5px;opacity:.7;margin-top:3px}
+  .day-chip{align-self:center;background:#f1f5f9;color:var(--mut);font-size:10.5px;font-weight:600;padding:3px 12px;border-radius:999px}
+
+  .kpi-chip{position:absolute;bottom:26px;left:50%;transform:translate(-50%,14px);background:var(--navy);color:#fff;
+    padding:14px 26px;border-radius:14px;font-size:17px;font-weight:600;box-shadow:0 14px 34px rgba(2,6,23,.45);z-index:6;
+    max-width:940px;text-align:center}
+  .kpi-chip em{color:#4ade80;font-style:normal;font-weight:800}
+  .cap{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(2,6,23,.82);color:#fff;
+    padding:10px 22px;border-radius:10px;font-size:16.5px;font-weight:500;white-space:nowrap;z-index:8}
+
+  /* dashboard */
+  .dash{padding:8px 10px;height:100%;display:flex;flex-direction:column;gap:16px}
+  .stat-row{display:flex;gap:16px}
+  .stat{flex:1;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:0 4px 14px rgba(15,23,42,.05)}
+  .stat .lb{font-size:13px;color:var(--mut);font-weight:600}
+  .stat .vl{font-size:36px;font-weight:800;margin-top:6px;color:var(--ink)}
+  .stat .vl small{font-size:18px;color:var(--mut);font-weight:600}
+  .stat .dl{font-size:12.5px;font-weight:700;color:var(--green);margin-top:4px}
+  .chart-card{flex:1;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px;box-shadow:0 4px 14px rgba(15,23,42,.05)}
+  .chart-card h3{font-size:15px;margin-bottom:14px}
+  .bars{display:flex;align-items:flex-end;gap:26px;height:300px;padding:0 8px}
+  .bgrp{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+  .bar{width:56px;border-radius:8px 8px 3px 3px;height:0;transition:height 1.2s cubic-bezier(.22,.9,.36,1)}
+  .bar.a{background:#cbd5e1}
+  .bar.b{background:var(--brand)}
+  .bgrp .bl{font-size:12px;color:var(--mut);font-weight:600;text-align:center}
+</style>
+</head>
+<body>
+
+<!-- ============ SCENE 1: INTRO ============ -->
+<section class="scene" id="s1">
+  <div class="title-card">
+    <div class="kicker step" data-t="300">High-Rise Solution · Social Media Autopilot</div>
+    <h1 class="step" data-t="800">Always Posting. Always Present.<br><span class="hl">Zero Ad Spend.</span></h1>
+    <div class="sub step" data-t="1800">Daily branded posts created and published for you — plus automated<br>DM follow-ups that turn commenters into booked leads.</div>
+    <div class="flow-pills">
+      <div class="pill step pop" data-t="4200">🎨 Your Brand & Services</div><div class="arr step" data-t="4700">→</div>
+      <div class="pill step pop" data-t="5000">📅 Daily Auto-Posts</div><div class="arr step" data-t="5500">→</div>
+      <div class="pill step pop" data-t="5800">💬 Auto DM Follow-Up</div><div class="arr step" data-t="6300">→</div>
+      <div class="pill step pop" data-t="6600">📈 Leads From Social</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCENE 2: BRAND SETUP ============ -->
+<section class="scene" id="s2">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="panel brandp step pop" data-t="400">
+        <h2>🎨 One-time brand setup</h2>
+        <div class="ws">The content engine learns your business once — then works forever</div>
+        <div class="frow">
+          <div class="field step" data-t="1200"><div class="lbl">Business</div><b>Comfort Air Heating &amp; Cooling</b></div>
+          <div class="field step" data-t="1600"><div class="lbl">Service area</div><b>Dallas–Fort Worth</b></div>
+        </div>
+        <div class="field step" data-t="2200"><div class="lbl">Services</div>
+          <div class="chips"><span class="chip">A/C repair</span><span class="chip">A/C install</span><span class="chip">Furnace</span><span class="chip">Duct cleaning</span><span class="chip">Tune-ups</span><span class="chip">Thermostats</span></div>
+        </div>
+        <div class="frow" style="margin-top:10px">
+          <div class="field step" data-t="2900"><div class="lbl">Brand voice</div><b>Friendly local expert 🤝</b></div>
+          <div class="field step" data-t="3300"><div class="lbl">Offers to rotate</div><b>$89 tune-up · free estimates</b></div>
+        </div>
+        <div class="field step" data-t="4000" style="margin-top:10px"><div class="lbl">Connected platforms</div>
+          <div class="plats">
+            <div class="plat onn"><span class="dot"></span>Facebook</div>
+            <div class="plat onn"><span class="dot"></span>Instagram</div>
+            <div class="plat onn"><span class="dot"></span>Google Profile</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel wf step slide-r" data-t="5200">
+        <h2>🧠 What the engine does with it</h2>
+        <div class="ws">Every post is on-brand automatically</div>
+        <div class="node step" data-t="5600"><div class="nic tr">✍️</div><div><b>Writes in your voice</b><span>Tips, offers, seasonal topics</span></div><div class="st">✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="6400"><div class="nic em">🎨</div><div><b>Designs branded graphics</b><span>Your colors, logo &amp; services</span></div><div class="st">✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="7200"><div class="nic br">📍</div><div><b>Targets your local area</b><span>DFW-focused content</span></div><div class="st">✓</div></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 3: CONTENT CALENDAR ============ -->
+<section class="scene" id="s3">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="panel ccal step pop" data-t="400">
+        <h2>📅 July — generated in one click <span>a full month, scheduled automatically</span></h2>
+        <div class="cgrid">
+          <div class="dhd">Mon</div><div class="dhd">Tue</div><div class="dhd">Wed</div><div class="dhd">Thu</div><div class="dhd">Fri</div><div class="dhd">Sat</div><div class="dhd">Sun</div>
+          <div class="dcell"><div class="dn">6</div><div class="pchip tip step" data-t="1400">💡 A/C tip</div></div>
+          <div class="dcell"><div class="dn">7</div><div class="pchip ba step" data-t="1700">📸 Before/after</div></div>
+          <div class="dcell"><div class="dn">8</div><div class="pchip rev step" data-t="2000">⭐ 5★ review</div></div>
+          <div class="dcell"><div class="dn">9</div><div class="pchip tip step" data-t="2300">💡 Energy tip</div></div>
+          <div class="dcell"><div class="dn">10</div><div class="pchip offer step" data-t="2600">🎁 $89 tune-up</div></div>
+          <div class="dcell"><div class="dn">11</div><div class="pchip tip step" data-t="2900">💡 Filter guide</div></div>
+          <div class="dcell"><div class="dn">12</div><div class="pchip ba step" data-t="3200">📸 Install pic</div></div>
+          <div class="dcell"><div class="dn">13</div><div class="pchip rev step" data-t="3500">⭐ Review</div></div>
+          <div class="dcell"><div class="dn">14</div><div class="pchip tip step" data-t="3800">💡 Humidity tip</div></div>
+          <div class="dcell"><div class="dn">15</div><div class="pchip tip step" data-t="4100">💡 Myth-buster</div></div>
+          <div class="dcell"><div class="dn">16</div><div class="pchip offer step" data-t="4400">🎁 Free estimate</div></div>
+          <div class="dcell"><div class="dn">17</div><div class="pchip ba step" data-t="4700">📸 Team spotlight</div></div>
+          <div class="dcell"><div class="dn">18</div><div class="pchip tip step" data-t="5000">💡 Summer prep</div></div>
+          <div class="dcell"><div class="dn">19</div><div class="pchip rev step" data-t="5300">⭐ Review</div></div>
+        </div>
+        <div class="ws step" data-t="6200" style="margin-top:14px;font-size:13.5px">🔁 Tips → proof → reviews → offers, rotated automatically so the feed never repeats itself</div>
+      </div>
+    </div>
+    <div class="kpi-chip step" data-t="7000">📅 <em>31 posts</em> scheduled in one click — a month of presence, <em>zero effort</em></div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 4: THE POST ============ -->
+<section class="scene" id="s4">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div>
+        <div class="post step pop" data-t="400">
+          <div class="ph"><div class="pav">CA</div><div><b>Comfort Air Heating &amp; Cooling</b><span>Dallas–Fort Worth · Just now</span></div></div>
+          <div class="pimg"><div class="big">🥵</div><b>5 signs your A/C is<br>crying for help</b></div>
+          <div class="pcap step" data-t="1600">Texas summer is no joke, DFW! 🌡️ If your A/C is doing any of these 5 things, it's begging for a tune-up — and #3 is the one most folks ignore until it's a $2,000 repair…
+            <div class="tags">#DFW #HVAC #ACRepair #DallasTexas #HomeMaintenance</div>
+          </div>
+          <div class="pfoot step" data-t="2400"><span>👍 84</span><span>💬 17 comments</span><span>↗ 9 shares</span></div>
+        </div>
+        <div class="plat-badges">
+          <div class="pb onn step pop" data-t="3200">✓ Facebook</div>
+          <div class="pb onn step pop" data-t="3600">✓ Instagram</div>
+          <div class="pb onn step pop" data-t="4000">✓ Google Profile</div>
+        </div>
+      </div>
+      <div class="panel wf step slide-r" data-t="4800">
+        <h2>📤 Published everywhere at once</h2>
+        <div class="ws">Written, designed &amp; posted at the best time — automatically</div>
+        <div class="node step" data-t="5200"><div class="nic tr">🕘</div><div><b>Optimal posting time</b><span>When your local audience is online</span></div><div class="st">✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="6000"><div class="nic sms">📣</div><div><b>Native to each platform</b><span>Right size, right format, right tags</span></div><div class="st">✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="6800"><div class="nic br">💬</div><div><b>Comments watched 24/7</b><span>Every reply is a potential lead</span></div><div class="st">ARMED ✓</div></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 5: DAILY QUEUE ============ -->
+<section class="scene" id="s5">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="panel queue step pop" data-t="400">
+        <h2 style="font-size:19px;margin-bottom:4px">🚀 This week — publishing itself</h2>
+        <div class="ws" style="color:var(--mut);font-size:13.5px;margin-bottom:12px">Every day, on time, without anyone logging in</div>
+        <div class="qrow2 live step" data-t="1200"><div class="qtime">Mon · 9:00 AM</div><div class="qname">💡 “5 signs your A/C is crying for help”</div><div class="qplat">FB · IG · GBP</div><div class="qst">POSTED ✓</div></div>
+        <div class="qrow2 live step" data-t="2000"><div class="qtime">Tue · 9:15 AM</div><div class="qname">📸 Before/after: Plano attic install</div><div class="qplat">FB · IG</div><div class="qst">POSTED ✓</div></div>
+        <div class="qrow2 live step" data-t="2800"><div class="qtime">Wed · 8:45 AM</div><div class="qname">⭐ “Fixed same-day!” — customer review</div><div class="qplat">FB · GBP</div><div class="qst">POSTED ✓</div></div>
+        <div class="qrow2 live step" data-t="3600" data-lite="5600"><div class="qtime">Thu · 9:00 AM</div><div class="qname">🎁 $89 tune-up special — this week only</div><div class="qplat">FB · IG · GBP</div><div class="qst">POSTING…</div></div>
+        <div class="qrow2 step" data-t="4200"><div class="qtime">Fri · 9:30 AM</div><div class="qname">💡 Filter change 101 (30-sec guide)</div><div class="qplat">FB · IG</div><div class="qst">QUEUED</div></div>
+        <div class="qrow2 step" data-t="4700"><div class="qtime">Sat · 10:00 AM</div><div class="qname">📸 Meet the team: Tech spotlight</div><div class="qplat">IG</div><div class="qst">QUEUED</div></div>
+      </div>
+    </div>
+    <div class="kpi-chip step" data-t="6400">🔁 Consistency is what grows a page — and <em>consistency is automated now</em></div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 6: COMMENT → AUTO DM ============ -->
+<section class="scene" id="s6">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="phone step pop" data-t="400">
+        <div class="scr">
+          <div class="ph-top"><div class="who">Instagram DMs · @mike_dfw</div><div class="num">from comment on “$89 tune-up special”</div></div>
+          <div class="msgs">
+            <div class="day-chip">Thu · 11:42 AM</div>
+            <div class="msg in step" data-t="1200">Hey saw your tune-up post — do y'all service Arlington? My AC's blowing warm air 😩<span class="tm">11:42 AM</span></div>
+            <div class="msg out step" data-t="3000">Hey Mike! 👋 Yes — Arlington is right in our service area. Warm air usually means a refrigerant or capacitor issue; our $89 tune-up includes the full diagnostic. Want me to check times for this week?<span class="tm">11:42 AM · Auto-DM</span></div>
+            <div class="msg in step" data-t="5400">Yes please, afternoons work best<span class="tm">11:45 AM</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel wf step slide-r" data-t="6200">
+        <h2>💬 Automated DM follow-up</h2>
+        <div class="ws">No comment or DM ever goes cold</div>
+        <div class="node step" data-t="6600"><div class="nic tr">👀</div><div><b>Comment detected</b><span>On today's offer post</span></div><div class="st">✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="7400"><div class="nic sms">⚡</div><div><b>DM sent in seconds</b><span>While the interest is hot</span></div><div class="st">✓</div></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 7: DM → BOOKED LEAD ============ -->
+<section class="scene" id="s7">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="phone">
+        <div class="scr">
+          <div class="ph-top"><div class="who">Instagram DMs · @mike_dfw</div><div class="num">handled by AI · 100% automated</div></div>
+          <div class="msgs">
+            <div class="msg in">Yes please, afternoons work best<span class="tm">11:45 AM</span></div>
+            <div class="msg out step" data-t="1000">Perfect — I've got <b>Fri 1:30 PM</b> or <b>Fri 3:45 PM</b> in Arlington. Which one should I lock in? 🔧<span class="tm">11:45 AM · Auto-DM</span></div>
+            <div class="msg in step" data-t="3000">1:30 works<span class="tm">11:47 AM</span></div>
+            <div class="msg out step" data-t="4400">You're booked, Mike! ✅ Fri 1:30 PM · $89 tune-up + warm-air diagnostic. I just texted you a confirmation — see you Friday! 🎉<span class="tm">11:47 AM · Auto-DM</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel wf step slide-r" data-t="5400">
+        <h2>📈 From scroller to customer</h2>
+        <div class="ws">Straight into your pipeline &amp; calendar</div>
+        <div class="node step" data-t="5800"><div class="nic sms">💬</div><div><b>AI qualifies in the DM</b><span>Area, issue, timing</span></div><div class="st">✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="6600"><div class="nic br">📅</div><div><b>Booked on your calendar</b><span>Confirmation + reminders sent</span></div><div class="st">✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node lit step" data-t="7400"><div class="nic tr">📋</div><div><b>Added to pipeline as a lead</b><span>Source: Instagram · organic</span></div><div class="st">DONE ✓</div></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 8: RESULTS DASHBOARD ============ -->
+<section class="scene" id="s8">
+  <div class="crm">
+    <aside class="sidebar">
+      <div class="logo"><div class="mark">⚡</div>High-Rise Solution</div>
+      <div class="nav">
+        <div class="sel">🏠 Dashboard</div>
+        <div>📋 Opportunities</div>
+        <div>💬 Conversations</div>
+        <div>🔁 Automations</div>
+        <div>📅 Calendar</div>
+        <div>👥 Contacts</div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar"><span class="pg">Dashboard</span><span class="crumb">Social Autopilot · last 30 days</span><span class="spacer"></span><div class="avatar">HS</div></div>
+      <div class="content"><div class="dash">
+        <div class="stat-row">
+          <div class="stat step" data-t="400"><div class="lb">Posts published</div><div class="vl"><span data-count="31" data-dur="1200">0</span><small> /31</small></div><div class="dl">every single day, on time</div></div>
+          <div class="stat step" data-t="800"><div class="lb">Local reach</div><div class="vl"><span data-count="48200" data-dur="1600">0</span></div><div class="dl">▲ organic — $0 ad spend</div></div>
+          <div class="stat step" data-t="1200"><div class="lb">DM conversations</div><div class="vl"><span data-count="142" data-dur="1600">0</span></div><div class="dl">100% answered by AI</div></div>
+          <div class="stat step" data-t="1600"><div class="lb">Leads from social</div><div class="vl"><span data-count="36" data-dur="1800">0</span></div><div class="dl">booked without ads</div></div>
+        </div>
+        <div class="chart-card step" data-t="2400">
+          <h3>Leads from social media — before vs. with Social Autopilot</h3>
+          <div class="bars">
+            <div class="bgrp"><div class="bar a" data-h="24"></div><div class="bl">Month 1<br>(before)</div></div>
+            <div class="bgrp"><div class="bar a" data-h="30"></div><div class="bl">Month 2<br>(before)</div></div>
+            <div class="bgrp"><div class="bar b" data-h="150"></div><div class="bl">Month 3<br>(autopilot)</div></div>
+            <div class="bgrp"><div class="bar b" data-h="216"></div><div class="bl">Month 4<br>(autopilot)</div></div>
+            <div class="bgrp"><div class="bar b" data-h="264"></div><div class="bl">Month 5<br>(autopilot)</div></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCENE 9: OUTRO ============ -->
+<section class="scene" id="s9">
+  <div class="title-card">
+    <div class="kicker step" data-t="300">High-Rise Solution · Social Media Autopilot</div>
+    <h1 class="step" data-t="800" style="font-size:50px">Show up every day.<br><span class="hl">Without lifting a finger.</span></h1>
+    <div class="sub step" data-t="2200">Daily branded posts. Automated DM follow-ups. Real booked leads —<br>all organic, no ad budget required.</div>
+    <div class="cta-btn step pop" data-t="4200">📅 Book Your Social Autopilot Call</div>
+  </div>
+</section>
+
+<script>
+const SCENE_IDS = ['s1','s2','s3','s4','s5','s6','s7','s8','s9'];
+let DUR = [13000,10000,13000,11000,11000,11000,12000,13000,12000];
+
+function animateCount(el, target, dur){
+  let acc = -1, last = null;
+  function tick(now){
+    if(acc < 0){ acc = 0; }
+    else { const d = now - last; acc += (d > 0 ? d : 1000/60); }
+    last = now;
+    const p = Math.min(acc/dur, 1);
+    const eased = 1-Math.pow(1-p,3);
+    el.textContent = Math.round(target*eased).toLocaleString();
+    if(p<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function playScene(idx){
+  const sc = document.getElementById(SCENE_IDS[idx]);
+  document.querySelectorAll('.scene.active').forEach(s=>s.classList.remove('active'));
+  sc.classList.add('active');
+  sc.querySelectorAll('[data-t]').forEach(el=>{
+    const t = +el.dataset.t;
+    setTimeout(()=>{
+      el.classList.add('on');
+      el.querySelectorAll('[data-count]').forEach(cEl=>animateCount(cEl,+cEl.dataset.count,+cEl.dataset.dur||1500));
+      el.querySelectorAll('.bar[data-h]').forEach(b=>{ requestAnimationFrame(()=>b.style.height=b.dataset.h+'px'); });
+    }, t);
+  });
+  sc.querySelectorAll('[data-lite]').forEach(el=>setTimeout(()=>{
+    el.classList.add('lit','live');
+    const st = el.querySelector('.qst'); if(st) st.textContent = 'POSTED ✓';
+  }, +el.dataset.lite));
+}
+
+window.startDemo = function(durations){
+  if(durations && durations.length===SCENE_IDS.length) DUR = durations;
+  let t = 0;
+  SCENE_IDS.forEach((id,i)=>{
+    setTimeout(()=>playScene(i), t);
+    t += DUR[i];
+  });
+  window.__demoTotal = t;
+  return t;
+};
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 // Deterministic frame-by-frame render of the demo using CDP virtual time.
 // Frames are piped into ffmpeg at an exact 30 fps — no wall-clock drift.
-// Usage: node frames.mjs <durations-json> <out.mp4>
+// Usage: node frames.mjs <durations-json> <out.mp4> [page.html]
 import { chromium } from 'playwright';
 import { spawn } from 'child_process';
 import path from 'path';
@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const durations = JSON.parse(process.argv[2]);
 const outFile = process.argv[3] || 'demo.mp4';
+const pageFile = process.argv[4] || 'ghl-followup-demo.html';
 const FPS = 30;
 
 const browser = await chromium.launch({
@@ -16,7 +17,7 @@ const browser = await chromium.launch({
          '--run-all-compositor-stages-before-draw', '--disable-checker-imaging'],
 });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-await page.goto('file://' + path.join(__dirname, 'ghl-followup-demo.html'));
+await page.goto('file://' + path.join(__dirname, pageFile));
 await page.waitForTimeout(300);
 
 const cdp = await page.context().newCDPSession(page);
