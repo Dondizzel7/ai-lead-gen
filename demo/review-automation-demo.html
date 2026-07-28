@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reputation & Review Automation — Tutorial</title>
+<style>
+  :root{
+    --navy:#0f172a; --navy2:#1e293b; --panel:#ffffff; --bg:#f1f5f9;
+    --brand:#2563eb; --brand2:#3b82f6; --green:#16a34a; --amber:#d97706; --red:#dc2626;
+    --ink:#0f172a; --mut:#64748b; --line:#e2e8f0;
+    --sms-out:#2563eb; --sms-in:#e2e8f0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1280px;height:720px;overflow:hidden;background:#0b1220;
+    font-family:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:var(--ink)}
+
+  .scene{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .6s ease}
+  .scene.active{opacity:1;pointer-events:auto}
+  .step{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+  .step.on{opacity:1;transform:none}
+  .step.pop{transform:scale(.85)}
+  .step.pop.on{transform:scale(1)}
+  .step.slide-r{transform:translateX(40px)}
+  .step.slide-r.on{transform:none}
+
+  .title-card{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;
+    background:radial-gradient(1000px 600px at 30% 20%,#1d3a8a 0%,#0b1220 60%),#0b1220;color:#fff;text-align:center}
+  .title-card .kicker{font-size:20px;letter-spacing:4px;text-transform:uppercase;color:#93c5fd;font-weight:600}
+  .title-card h1{font-size:58px;font-weight:800;margin:18px 0 10px;line-height:1.12}
+  .title-card h1 .hl{color:#60a5fa}
+  .title-card .sub{font-size:26px;color:#cbd5e1;max-width:880px;line-height:1.5}
+  .flow-pills{display:flex;gap:14px;margin-top:44px;align-items:center}
+  .flow-pills .pill{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);
+    border-radius:999px;padding:12px 22px;font-size:19px;font-weight:600;color:#e2e8f0}
+  .flow-pills .arr{color:#60a5fa;font-size:22px;font-weight:700}
+  .cta-btn{margin-top:46px;background:var(--brand);color:#fff;font-size:24px;font-weight:700;
+    padding:18px 44px;border-radius:14px;box-shadow:0 12px 40px rgba(37,99,235,.45)}
+
+  .crm{display:flex;height:100%;background:var(--bg)}
+  .sidebar{width:210px;background:var(--navy);color:#cbd5e1;padding:18px 0;flex-shrink:0;display:flex;flex-direction:column}
+  .logo{display:flex;align-items:center;gap:10px;padding:4px 18px 18px;color:#fff;font-weight:800;font-size:17px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .logo .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+    display:flex;align-items:center;justify-content:center;font-size:16px}
+  .nav{margin-top:14px;font-size:14.5px}
+  .nav div{padding:10px 18px;display:flex;gap:10px;align-items:center;border-left:3px solid transparent}
+  .nav div.sel{background:rgba(59,130,246,.15);color:#fff;border-left-color:#3b82f6}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{height:56px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;
+    padding:0 22px;gap:14px;flex-shrink:0}
+  .topbar .pg{font-weight:700;font-size:17px}
+  .topbar .crumb{color:var(--mut);font-size:14px}
+  .topbar .spacer{flex:1}
+  .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#ef4444);
+    color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+  .content{flex:1;padding:20px 22px;overflow:hidden;position:relative}
+
+  .split{display:flex;gap:34px;align-items:center;justify-content:center;height:100%;padding:0 40px}
+  .panel{background:#fff;border-radius:16px;border:1px solid var(--line);box-shadow:0 10px 30px rgba(15,23,42,.08);padding:22px}
+
+  .wf{width:430px}
+  .wf h2{font-size:19px;margin-bottom:4px}
+  .wf .ws{color:var(--mut);font-size:13.5px;margin-bottom:18px}
+  .node{display:flex;gap:12px;align-items:center;background:#f8fafc;border:1.5px solid var(--line);
+    border-radius:12px;padding:12px 14px;position:relative}
+  .node+.node-gap{height:22px;width:2px;background:var(--line);margin-left:33px}
+  .node .nic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  .nic.tr{background:#fef3c7}
+  .nic.sms{background:#dbeafe}
+  .nic.em{background:#ede9fe}
+  .nic.wt{background:#f1f5f9}
+  .nic.br{background:#dcfce7}
+  .nic.rd{background:#fee2e2}
+  .node b{font-size:14px;display:block}
+  .node span{font-size:12px;color:var(--mut)}
+  .node .st{margin-left:auto;font-size:11px;font-weight:700;color:var(--mut)}
+  .node.lit{border-color:var(--brand);background:#eff6ff;box-shadow:0 4px 14px rgba(37,99,235,.18)}
+  .node.lit .st{color:var(--green)}
+  .node.done{border-color:#86efac;background:#f0fdf4}
+  .node.done .st{color:var(--green)}
+  .node.warn{border-color:#fca5a5;background:#fef2f2}
+  .node.warn .st{color:var(--red)}
+
+  /* jobs table */
+  .jtable{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;width:100%}
+  .jrow{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--line);font-size:14px}
+  .jrow.hd{background:#f8fafc;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);font-weight:700}
+  .jrow .j-name{width:170px;font-weight:700}
+  .jrow .j-svc{width:220px;color:var(--mut)}
+  .jrow .j-date{width:140px;color:var(--mut)}
+  .badge{font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:999px}
+  .badge.done{background:#dcfce7;color:#15803d}
+  .badge.wip{background:#dbeafe;color:#1d4ed8}
+  .jrow.hero{border:2px solid var(--brand);border-radius:10px;box-shadow:0 8px 24px rgba(37,99,235,.18)}
+
+  /* phone */
+  .phone{width:300px;height:560px;background:#0b0f19;border-radius:38px;padding:12px;box-shadow:0 24px 60px rgba(2,6,23,.5);flex-shrink:0}
+  .phone .scr{background:#fff;height:100%;border-radius:28px;overflow:hidden;display:flex;flex-direction:column}
+  .phone .ph-top{background:#f8fafc;border-bottom:1px solid var(--line);padding:14px 14px 10px;text-align:center}
+  .phone .ph-top .who{font-weight:700;font-size:14px}
+  .phone .ph-top .num{font-size:11px;color:var(--mut)}
+  .msgs{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:8px;overflow:hidden;justify-content:flex-end}
+  .msg{max-width:84%;padding:9px 12px;border-radius:16px;font-size:12.8px;line-height:1.45}
+  .msg.out{align-self:flex-end;background:var(--sms-out);color:#fff;border-bottom-right-radius:5px}
+  .msg.in{align-self:flex-start;background:var(--sms-in);color:var(--ink);border-bottom-left-radius:5px}
+  .msg .tm{display:block;font-size:9.5px;opacity:.7;margin-top:3px}
+  .day-chip{align-self:center;background:#f1f5f9;color:var(--mut);font-size:10.5px;font-weight:600;padding:3px 12px;border-radius:999px}
+
+  .stars-row{display:flex;gap:6px;align-self:flex-end;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:10px 14px}
+  .stars-row .star{font-size:22px;color:#e2e8f0;transition:color .3s, transform .3s}
+  .stars-row .star.lit{color:#f59e0b;transform:scale(1.15)}
+
+  /* review card */
+  .rcard{width:400px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 10px 30px rgba(15,23,42,.12);padding:20px}
+  .rcard .rh{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .rcard .rav{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#f97316);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px}
+  .rcard .rh b{font-size:14.5px;display:block}
+  .rcard .rh span{font-size:11.5px;color:var(--mut)}
+  .rcard .rstars{font-size:18px;color:#e2e8f0;margin-bottom:8px}
+  .rcard .rstars .lit{color:#f59e0b}
+  .rcard .rtxt{font-size:13.5px;line-height:1.55;color:var(--ink)}
+  .glogo{width:22px;height:22px;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#4285F4;margin-left:auto}
+
+  /* private feedback form */
+  .pform{background:#fef2f2;border:1.5px dashed #fca5a5;border-radius:12px;padding:14px}
+  .pform .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#b91c1c;font-weight:700;margin-bottom:6px}
+  .pform .q{font-size:13.5px;color:var(--ink);margin-bottom:8px}
+  .pform textarea{width:100%;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px;color:var(--mut);min-height:44px}
+
+  .toast{position:absolute;top:16px;right:22px;background:var(--navy);color:#fff;padding:14px 18px;border-radius:12px;
+    display:flex;gap:12px;align-items:center;font-size:14.5px;box-shadow:0 14px 34px rgba(2,6,23,.45);z-index:5;max-width:400px}
+  .toast .ic{width:34px;height:34px;border-radius:9px;background:#16a34a;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+  .toast.warn .ic{background:var(--red)}
+  .toast b{display:block;font-size:14.5px}
+  .toast span{font-size:12.5px;color:#cbd5e1}
+  .toast .cta-mini{margin-top:8px;display:inline-block;background:var(--brand);color:#fff;font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:999px}
+
+  .kpi-chip{position:absolute;bottom:26px;left:50%;transform:translate(-50%,14px);background:var(--navy);color:#fff;
+    padding:14px 26px;border-radius:14px;font-size:17px;font-weight:600;box-shadow:0 14px 34px rgba(2,6,23,.45);z-index:6;
+    max-width:940px;text-align:center}
+  .kpi-chip em{color:#4ade80;font-style:normal;font-weight:800}
+  .cap{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(2,6,23,.82);color:#fff;
+    padding:10px 22px;border-radius:10px;font-size:16.5px;font-weight:500;white-space:nowrap;z-index:8}
+
+  /* dashboard */
+  .dash{padding:8px 10px;height:100%;display:flex;flex-direction:column;gap:16px}
+  .stat-row{display:flex;gap:16px}
+  .stat{flex:1;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:0 4px 14px rgba(15,23,42,.05)}
+  .stat .lb{font-size:13px;color:var(--mut);font-weight:600}
+  .stat .vl{font-size:36px;font-weight:800;margin-top:6px;color:var(--ink)}
+  .stat .vl small{font-size:18px;color:var(--mut);font-weight:600}
+  .stat .dl{font-size:12.5px;font-weight:700;color:var(--green);margin-top:4px}
+  .chart-card{flex:1;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px;box-shadow:0 4px 14px rgba(15,23,42,.05)}
+  .chart-card h3{font-size:15px;margin-bottom:14px}
+  .bars{display:flex;align-items:flex-end;gap:26px;height:300px;padding:0 8px}
+  .bgrp{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+  .bar{width:56px;border-radius:8px 8px 3px 3px;height:0;transition:height 1.2s cubic-bezier(.22,.9,.36,1)}
+  .bar.a{background:#cbd5e1}
+  .bar.b{background:var(--amber)}
+  .bgrp .bl{font-size:12px;color:var(--mut);font-weight:600;text-align:center}
+  .bgrp .bv{font-size:13px;font-weight:800;color:var(--ink)}
+</style>
+</head>
+<body>
+
+<!-- ============ SCENE 1: INTRO ============ -->
+<section class="scene" id="s1">
+  <div class="title-card">
+    <div class="kicker step" data-t="300">High-Rise Solution · Reputation &amp; Review Automation</div>
+    <h1 class="step" data-t="800">Turn Every Job Into a<br><span class="hl">5-Star Review</span></h1>
+    <div class="sub step" data-t="1800">Happy customers get asked automatically. Unhappy ones get<br>caught privately — before they ever type a public review.</div>
+    <div class="flow-pills">
+      <div class="pill step pop" data-t="4000">✅ Job Completed</div><div class="arr step" data-t="4500">→</div>
+      <div class="pill step pop" data-t="4800">⭐ Review Request</div><div class="arr step" data-t="5300">→</div>
+      <div class="pill step pop" data-t="5600">🔀 Smart Routing</div><div class="arr step" data-t="6100">→</div>
+      <div class="pill step pop" data-t="6400">📈 Reputation Grows</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCENE 2: JOB COMPLETED TRIGGERS AUTOMATION ============ -->
+<section class="scene" id="s2">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="panel" style="width:520px">
+        <h2 style="font-size:19px;margin-bottom:14px">🧰 Today's Jobs</h2>
+        <div class="jtable">
+          <div class="jrow hd"><div class="j-name">Customer</div><div class="j-svc">Service</div><div class="j-date">Status</div><div></div></div>
+          <div class="jrow"><div class="j-name">Priya Shah</div><div class="j-svc">Flooring install</div><div class="j-date">In progress</div><div class="badge wip">WIP</div></div>
+          <div class="jrow hero step pop" data-t="1200"><div class="j-name">Karen Whitfield</div><div class="j-svc">A/C tune-up</div><div class="j-date">Just now</div><div class="badge done">COMPLETE ✅</div></div>
+          <div class="jrow"><div class="j-name">Tom Becker</div><div class="j-svc">Roof inspection</div><div class="j-date">Tomorrow</div><div class="badge wip">SCHEDULED</div></div>
+        </div>
+      </div>
+      <div class="panel wf step slide-r" data-t="2200">
+        <h2>⚡ Automation triggered</h2>
+        <div class="ws">Workflow: "Job Complete → Review Request"</div>
+        <div class="node step" data-t="2600" data-lite="3000"><div class="nic tr">✅</div><div><b>Trigger: Job marked complete</b><span>No one has to remember to ask</span></div><div class="st">FIRED</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="3600" data-lite="4200"><div class="nic wt">⏳</div><div><b>Wait 2 hours</b><span>Right after the good experience</span></div><div class="st">…</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="4600"><div class="nic sms">💬</div><div><b>Send review request</b><span>SMS + email, one tap to rate</span></div><div class="st">READY</div></div>
+      </div>
+    </div>
+  </div></div>
+  <div class="cap step" data-t="5600">Every completed job automatically starts the review sequence — no manual asking.</div>
+</section>
+
+<!-- ============ SCENE 3: REVIEW REQUEST SENT (TAP TO RATE) ============ -->
+<section class="scene" id="s3">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="phone step pop" data-t="400">
+        <div class="scr">
+          <div class="ph-top"><div class="who">Karen Whitfield</div><div class="num">Customer · (555) 021-8834</div></div>
+          <div class="msgs">
+            <div class="day-chip">Today · 3:12 PM</div>
+            <div class="msg out step" data-t="1000">Hi Karen! Thanks for choosing Comfort Air 😊 We'd love your feedback — how did we do today?<span class="tm">3:12 PM · Delivered</span></div>
+            <div class="stars-row step pop" data-t="2600">
+              <span class="star" id="st1">★</span><span class="star" id="st2">★</span><span class="star" id="st3">★</span><span class="star" id="st4">★</span><span class="star" id="st5">★</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel wf step slide-r" data-t="1600">
+        <h2>⭐ One tap to rate</h2>
+        <div class="ws">No app, no login — just a text</div>
+        <div class="node"><div class="nic sms">📱</div><div><b>Text arrives in 2 hours</b><span>While the experience is fresh</span></div><div class="st">✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node"><div class="nic em">✉️</div><div><b>Email backup sent too</b><span>Whichever they check first</span></div><div class="st">✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node lit"><div class="nic tr">👆</div><div><b>Tap 1–5 stars</b><span>Takes 3 seconds</span></div><div class="st">WAITING</div></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 4: SMART ROUTING ============ -->
+<section class="scene" id="s4">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split" style="gap:60px">
+      <div class="panel wf" style="width:400px">
+        <h2>🔀 The smart part</h2>
+        <div class="ws">Rating decides where the customer goes next</div>
+        <div class="node lit" style="margin-bottom:0"><div class="nic tr">⭐</div><div><b>Customer taps a rating</b><span>1 to 5 stars</span></div><div class="st">✓</div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:26px;width:420px">
+        <div class="node done step slide-r" data-t="1200" style="padding:16px"><div class="nic br">😀</div><div><b>4–5 stars</b><span>→ Sent to Google / Facebook to post publicly</span></div><div class="st">PUBLIC</div></div>
+        <div class="node warn step slide-r" data-t="2600" style="padding:16px"><div class="nic rd">😟</div><div><b>1–3 stars</b><span>→ Routed to a private feedback form instead</span></div><div class="st">PRIVATE</div></div>
+      </div>
+    </div>
+    <div class="kpi-chip step" data-t="4200">🛡 An unhappy customer <em>never becomes a public 1-star review</em></div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 5: HAPPY PATH — PUBLIC REVIEW POSTED ============ -->
+<section class="scene" id="s5">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="phone">
+        <div class="scr">
+          <div class="ph-top"><div class="who">Karen Whitfield</div><div class="num">Customer · (555) 021-8834</div></div>
+          <div class="msgs">
+            <div class="stars-row" style="align-self:center"><span class="star lit">★</span><span class="star lit">★</span><span class="star lit">★</span><span class="star lit">★</span><span class="star lit">★</span></div>
+            <div class="msg out step" data-t="800">Amazing, thank you Karen! 🎉 Tap below to share it on Google — takes 10 seconds and really helps us out.<span class="tm">3:14 PM · Auto-reply</span></div>
+            <div class="msg in step" data-t="3000">Done! You guys were great 😊<span class="tm">3:16 PM</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="rcard step slide-r" data-t="1800">
+        <div class="rh"><div class="rav">KW</div><div><b>Karen Whitfield</b><span>2 minutes ago</span></div><div class="glogo">G</div></div>
+        <div class="rstars"><span class="lit">★</span><span class="lit">★</span><span class="lit">★</span><span class="lit">★</span><span class="lit">★</span></div>
+        <div class="rtxt step" data-t="3400">"Fast, friendly, and fixed our A/C same day. Comfort Air is now our go-to — highly recommend!"</div>
+      </div>
+    </div>
+    <div class="toast step slide-r" data-t="4400">
+      <div class="ic">✓</div>
+      <div><b>New 5-star review posted</b><span>Karen Whitfield · Google · just now</span></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 6: UNHAPPY PATH — PRIVATE FEEDBACK CAUGHT ============ -->
+<section class="scene" id="s6">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="phone">
+        <div class="scr">
+          <div class="ph-top"><div class="who">Devon Marsh</div><div class="num">Customer · (555) 668-2201</div></div>
+          <div class="msgs">
+            <div class="stars-row" style="align-self:center"><span class="star lit">★</span><span class="star lit">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
+            <div class="msg out step" data-t="800">Sorry to hear that, Devon. Mind telling us what went wrong? We want to make it right.<span class="tm">4:02 PM · Auto-reply</span></div>
+            <div class="pform step" data-t="2200">
+              <div class="lbl">Private feedback — not public</div>
+              <div class="q">What happened?</div>
+              <textarea placeholder="Tech was late and the noise wasn't fully fixed..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel wf step slide-r" data-t="3200">
+        <h2>🛡 You find out first</h2>
+        <div class="ws">Never posted publicly — routed straight to you</div>
+        <div class="node warn"><div class="nic rd">⚠️</div><div><b>2-star rating detected</b><span>Diverted before reaching Google</span></div><div class="st">CAUGHT</div></div>
+        <div class="node-gap"></div>
+        <div class="node lit"><div class="nic tr">🔔</div><div><b>Instant alert to you</b><span>What went wrong, in their words</span></div><div class="st">SENT ✓</div></div>
+      </div>
+    </div>
+    <div class="toast warn step slide-r" data-t="4200">
+      <div class="ic">⚠️</div>
+      <div><b>Low rating caught privately</b><span>Devon Marsh · 2★ · noise issue not resolved<br><span class="cta-mini">Call him back now</span></span></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 7: AUTOMATIC FOLLOW-UP NUDGE ============ -->
+<section class="scene" id="s7">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="panel wf" style="width:460px">
+        <h2>🔁 No response? A gentle nudge.</h2>
+        <div class="ws">Most reviews come from the second ask, not the first</div>
+        <div class="node step" data-t="500" data-done="700"><div class="nic sms">💬</div><div><b>Review request sent</b><span>Day 1</span></div><div class="st">SENT ✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="1200" data-lite="1800"><div class="nic wt">⏳</div><div><b>Wait 3 days</b><span>Only continues if no rating given</span></div><div class="st">…</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="2400" data-lite="3200"><div class="nic sms">💬</div><div><b>Friendly reminder sent</b><span>“Got 10 seconds? We'd love to hear from you”</span></div><div class="st">SENT ✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node step lit" data-t="3800"><div class="nic br">🛑</div><div><b>Stops instantly on any reply</b><span>Never nags a customer</span></div><div class="st">✓</div></div>
+      </div>
+    </div>
+    <div class="kpi-chip step" data-t="5000">📈 A single reminder can <em>double</em> your review response rate</div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 8: RESULTS DASHBOARD ============ -->
+<section class="scene" id="s8">
+  <div class="crm">
+    <aside class="sidebar">
+      <div class="logo"><div class="mark">⚡</div>High-Rise Solution</div>
+      <div class="nav">
+        <div class="sel">🏠 Dashboard</div>
+        <div>📋 Opportunities</div>
+        <div>💬 Conversations</div>
+        <div>🔁 Automations</div>
+        <div>⭐ Reputation</div>
+        <div>👥 Contacts</div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar"><span class="pg">Dashboard</span><span class="crumb">Reputation Automation · last 30 days</span><span class="spacer"></span><div class="avatar">HS</div></div>
+      <div class="content"><div class="dash">
+        <div class="stat-row">
+          <div class="stat step" data-t="400"><div class="lb">Review requests sent</div><div class="vl"><span data-count="212" data-dur="1400">0</span></div><div class="dl">100% automatic</div></div>
+          <div class="stat step" data-t="800"><div class="lb">New 5★ reviews</div><div class="vl"><span data-count="68" data-dur="1600">0</span></div><div class="dl">▲ 5.2× more than before</div></div>
+          <div class="stat step" data-t="1200"><div class="lb">Caught privately</div><div class="vl"><span data-count="14" data-dur="1600">0</span></div><div class="dl">saved from going public</div></div>
+          <div class="stat step" data-t="1600"><div class="lb">Google rating</div><div class="vl">4.1 → <span data-count="48" data-dur="1800">0</span><small>÷10</small></div><div class="dl">▲ climbing every month</div></div>
+        </div>
+        <div class="chart-card step" data-t="2400">
+          <h3>Google star rating — before vs. with Reputation Automation</h3>
+          <div class="bars">
+            <div class="bgrp"><div class="bv">4.1</div><div class="bar a" data-h="164"></div><div class="bl">Month 1<br>(before)</div></div>
+            <div class="bgrp"><div class="bv">4.2</div><div class="bar a" data-h="168"></div><div class="bl">Month 2<br>(before)</div></div>
+            <div class="bgrp"><div class="bv">4.5</div><div class="bar b" data-h="180"></div><div class="bl">Month 3<br>(automated)</div></div>
+            <div class="bgrp"><div class="bv">4.7</div><div class="bar b" data-h="188"></div><div class="bl">Month 4<br>(automated)</div></div>
+            <div class="bgrp"><div class="bv">4.9</div><div class="bar b" data-h="196"></div><div class="bl">Month 5<br>(automated)</div></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCENE 9: OUTRO ============ -->
+<section class="scene" id="s9">
+  <div class="title-card">
+    <div class="kicker step" data-t="300">High-Rise Solution · Reputation &amp; Review Automation</div>
+    <h1 class="step" data-t="800" style="font-size:50px">More 5-Star Reviews.<br><span class="hl">Fewer Public Complaints.</span></h1>
+    <div class="sub step" data-t="2200">A reputation that keeps building itself —<br>automatically, every single day.</div>
+    <div class="cta-btn step pop" data-t="4200">📅 Book Your Reputation Automation Call</div>
+  </div>
+</section>
+
+<script>
+const SCENE_IDS = ['s1','s2','s3','s4','s5','s6','s7','s8','s9'];
+let DUR = [13000,10000,13000,11000,11000,11000,12000,13000,12000];
+
+function animateCount(el, target, dur){
+  let acc = -1, last = null;
+  function tick(now){
+    if(acc < 0){ acc = 0; }
+    else { const d = now - last; acc += (d > 0 ? d : 1000/60); }
+    last = now;
+    const p = Math.min(acc/dur, 1);
+    const eased = 1-Math.pow(1-p,3);
+    el.textContent = Math.round(target*eased).toLocaleString();
+    if(p<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function playScene(idx){
+  const sc = document.getElementById(SCENE_IDS[idx]);
+  document.querySelectorAll('.scene.active').forEach(s=>s.classList.remove('active'));
+  sc.classList.add('active');
+  sc.querySelectorAll('[data-t]').forEach(el=>{
+    const t = +el.dataset.t;
+    setTimeout(()=>{
+      el.classList.add('on');
+      el.querySelectorAll('[data-count]').forEach(cEl=>animateCount(cEl,+cEl.dataset.count,+cEl.dataset.dur||1500));
+      el.querySelectorAll('.bar[data-h]').forEach(b=>{ requestAnimationFrame(()=>b.style.height=b.dataset.h+'px'); });
+    }, t);
+  });
+  sc.querySelectorAll('[data-lite]').forEach(el=>setTimeout(()=>el.classList.add('lit'), +el.dataset.lite));
+  sc.querySelectorAll('[data-done]').forEach(el=>setTimeout(()=>{el.classList.remove('lit');el.classList.add('done');}, +el.dataset.done));
+  // scene3: animate stars filling one by one
+  if(SCENE_IDS[idx]==='s3'){
+    const ids=['st1','st2','st3','st4','st5'];
+    ids.forEach((id,i)=>setTimeout(()=>{ const el=document.getElementById(id); if(el) el.classList.add('lit'); }, 3200+i*260));
+  }
+}
+
+window.startDemo = function(durations){
+  if(durations && durations.length===SCENE_IDS.length) DUR = durations;
+  let t = 0;
+  SCENE_IDS.forEach((id,i)=>{
+    setTimeout(()=>playScene(i), t);
+    t += DUR[i];
+  });
+  window.__demoTotal = t;
+  return t;
+};
+</script>
+</body>
+</html>
