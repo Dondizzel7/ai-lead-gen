@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Missed Call Text-Back — Tutorial</title>
+<style>
+  :root{
+    --navy:#0f172a; --navy2:#1e293b; --panel:#ffffff; --bg:#f1f5f9;
+    --brand:#2563eb; --brand2:#3b82f6; --green:#16a34a; --amber:#d97706; --red:#dc2626;
+    --ink:#0f172a; --mut:#64748b; --line:#e2e8f0;
+    --sms-out:#2563eb; --sms-in:#e2e8f0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1280px;height:720px;overflow:hidden;background:#0b1220;
+    font-family:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:var(--ink)}
+
+  .scene{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .6s ease}
+  .scene.active{opacity:1;pointer-events:auto}
+  .step{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+  .step.on{opacity:1;transform:none}
+  .step.pop{transform:scale(.85)}
+  .step.pop.on{transform:scale(1)}
+  .step.slide-r{transform:translateX(40px)}
+  .step.slide-r.on{transform:none}
+
+  .title-card{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;
+    background:radial-gradient(1000px 600px at 30% 20%,#1d3a8a 0%,#0b1220 60%),#0b1220;color:#fff;text-align:center}
+  .title-card .kicker{font-size:20px;letter-spacing:4px;text-transform:uppercase;color:#93c5fd;font-weight:600}
+  .title-card h1{font-size:58px;font-weight:800;margin:18px 0 10px;line-height:1.12}
+  .title-card h1 .hl{color:#60a5fa}
+  .title-card .sub{font-size:26px;color:#cbd5e1;max-width:880px;line-height:1.5}
+  .flow-pills{display:flex;gap:14px;margin-top:44px;align-items:center}
+  .flow-pills .pill{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);
+    border-radius:999px;padding:12px 22px;font-size:19px;font-weight:600;color:#e2e8f0}
+  .flow-pills .arr{color:#60a5fa;font-size:22px;font-weight:700}
+  .cta-btn{margin-top:46px;background:var(--brand);color:#fff;font-size:24px;font-weight:700;
+    padding:18px 44px;border-radius:14px;box-shadow:0 12px 40px rgba(37,99,235,.45)}
+
+  .crm{display:flex;height:100%;background:var(--bg)}
+  .sidebar{width:210px;background:var(--navy);color:#cbd5e1;padding:18px 0;flex-shrink:0;display:flex;flex-direction:column}
+  .logo{display:flex;align-items:center;gap:10px;padding:4px 18px 18px;color:#fff;font-weight:800;font-size:17px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .logo .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+    display:flex;align-items:center;justify-content:center;font-size:16px}
+  .nav{margin-top:14px;font-size:14.5px}
+  .nav div{padding:10px 18px;display:flex;gap:10px;align-items:center;border-left:3px solid transparent}
+  .nav div.sel{background:rgba(59,130,246,.15);color:#fff;border-left-color:#3b82f6}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{height:56px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;
+    padding:0 22px;gap:14px;flex-shrink:0}
+  .topbar .pg{font-weight:700;font-size:17px}
+  .topbar .crumb{color:var(--mut);font-size:14px}
+  .topbar .spacer{flex:1}
+  .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#ef4444);
+    color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+  .content{flex:1;padding:20px 22px;overflow:hidden;position:relative}
+
+  .split{display:flex;gap:34px;align-items:center;justify-content:center;height:100%;padding:0 40px}
+  .panel{background:#fff;border-radius:16px;border:1px solid var(--line);box-shadow:0 10px 30px rgba(15,23,42,.08);padding:22px}
+
+  .wf{width:430px}
+  .wf h2{font-size:19px;margin-bottom:4px}
+  .wf .ws{color:var(--mut);font-size:13.5px;margin-bottom:18px}
+  .node{display:flex;gap:12px;align-items:center;background:#f8fafc;border:1.5px solid var(--line);
+    border-radius:12px;padding:12px 14px;position:relative}
+  .node+.node-gap{height:22px;width:2px;background:var(--line);margin-left:33px}
+  .node .nic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  .nic.tr{background:#fef3c7}
+  .nic.sms{background:#dbeafe}
+  .nic.em{background:#ede9fe}
+  .nic.wt{background:#f1f5f9}
+  .nic.br{background:#dcfce7}
+  .nic.rd{background:#fee2e2}
+  .node b{font-size:14px;display:block}
+  .node span{font-size:12px;color:var(--mut)}
+  .node .st{margin-left:auto;font-size:11px;font-weight:700;color:var(--mut)}
+  .node.lit{border-color:var(--brand);background:#eff6ff;box-shadow:0 4px 14px rgba(37,99,235,.18)}
+  .node.lit .st{color:var(--green)}
+  .node.done{border-color:#86efac;background:#f0fdf4}
+  .node.done .st{color:var(--green)}
+  .node.warn{border-color:#fca5a5;background:#fef2f2}
+  .node.warn .st{color:var(--red)}
+
+  /* ringing call screen */
+  .callscr{width:300px;height:560px;background:#0b0f19;border-radius:38px;padding:12px;box-shadow:0 24px 60px rgba(2,6,23,.5);flex-shrink:0}
+  .callscr .cs{background:linear-gradient(180deg,#1e293b,#0f172a);height:100%;border-radius:28px;overflow:hidden;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;position:relative}
+  .callscr .cav{width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+    display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:800;margin-bottom:22px}
+  .callscr .cname{font-size:22px;font-weight:700}
+  .callscr .cnum{font-size:14px;color:#94a3b8;margin-top:4px}
+  .callscr .cstat{font-size:15px;color:#cbd5e1;margin-top:26px;letter-spacing:.5px}
+  .ring-pulse{position:absolute;inset:0;border-radius:28px;box-shadow:0 0 0 0 rgba(37,99,235,.5);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(37,99,235,.5)}70%{box-shadow:0 0 0 26px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
+  .missed-badge{background:#fee2e2;color:#b91c1c;font-weight:800;font-size:14px;padding:8px 18px;border-radius:999px;margin-top:26px}
+
+  /* phone */
+  .phone{width:300px;height:560px;background:#0b0f19;border-radius:38px;padding:12px;box-shadow:0 24px 60px rgba(2,6,23,.5);flex-shrink:0}
+  .phone .scr{background:#fff;height:100%;border-radius:28px;overflow:hidden;display:flex;flex-direction:column}
+  .phone .ph-top{background:#f8fafc;border-bottom:1px solid var(--line);padding:14px 14px 10px;text-align:center}
+  .phone .ph-top .who{font-weight:700;font-size:14px}
+  .phone .ph-top .num{font-size:11px;color:var(--mut)}
+  .msgs{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:8px;overflow:hidden;justify-content:flex-end}
+  .msg{max-width:84%;padding:9px 12px;border-radius:16px;font-size:12.8px;line-height:1.45}
+  .msg.out{align-self:flex-end;background:var(--sms-out);color:#fff;border-bottom-right-radius:5px}
+  .msg.in{align-self:flex-start;background:var(--sms-in);color:var(--ink);border-bottom-left-radius:5px}
+  .msg .tm{display:block;font-size:9.5px;opacity:.7;margin-top:3px}
+  .day-chip{align-self:center;background:#f1f5f9;color:var(--mut);font-size:10.5px;font-weight:600;padding:3px 12px;border-radius:999px}
+
+  /* call log table */
+  .clog{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;width:100%}
+  .crow{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--line);font-size:14px}
+  .crow.hd{background:#f8fafc;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);font-weight:700}
+  .crow .c-name{width:160px;font-weight:700}
+  .crow .c-num{width:150px;color:var(--mut)}
+  .crow .c-time{width:120px;color:var(--mut)}
+  .badge{font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:999px}
+  .badge.miss{background:#fee2e2;color:#b91c1c}
+  .badge.text{background:#dbeafe;color:#1d4ed8}
+  .badge.booked{background:#dcfce7;color:#15803d}
+  .crow.hero{border:2px solid var(--brand);border-radius:10px;box-shadow:0 8px 24px rgba(37,99,235,.18)}
+
+  .toast{position:absolute;top:16px;right:22px;background:var(--navy);color:#fff;padding:14px 18px;border-radius:12px;
+    display:flex;gap:12px;align-items:center;font-size:14.5px;box-shadow:0 14px 34px rgba(2,6,23,.45);z-index:5;max-width:400px}
+  .toast .ic{width:34px;height:34px;border-radius:9px;background:#16a34a;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+  .toast b{display:block;font-size:14.5px}
+  .toast span{font-size:12.5px;color:#cbd5e1}
+
+  /* calendar */
+  .cal{width:640px}
+  .cal h2{font-size:18px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+  .cal h2 span{font-size:13px;color:var(--mut);font-weight:500}
+  .cal-grid{display:grid;grid-template-columns:52px repeat(5,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .cal-grid .hd{background:#f8fafc;font-size:12px;font-weight:700;text-align:center;padding:8px 0;border-bottom:1px solid var(--line);border-left:1px solid var(--line)}
+  .cal-grid .tm-lbl{font-size:10.5px;color:var(--mut);text-align:right;padding:4px 6px 0 0;height:52px;border-top:1px solid var(--line)}
+  .cal-grid .cell{border-left:1px solid var(--line);border-top:1px solid var(--line);height:52px;position:relative}
+  .appt{position:absolute;inset:2px;background:#2563eb;border-radius:7px;color:#fff;font-size:9.5px;
+    padding:3px 6px;line-height:1.25;box-shadow:0 6px 16px rgba(37,99,235,.4);overflow:hidden}
+  .appt b{display:block;font-size:10px}
+  .appt.g{background:var(--green)}
+
+  .kpi-chip{position:absolute;bottom:26px;left:50%;transform:translate(-50%,14px);background:var(--navy);color:#fff;
+    padding:14px 26px;border-radius:14px;font-size:17px;font-weight:600;box-shadow:0 14px 34px rgba(2,6,23,.45);z-index:6;
+    max-width:940px;text-align:center}
+  .kpi-chip em{color:#4ade80;font-style:normal;font-weight:800}
+  .cap{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(2,6,23,.82);color:#fff;
+    padding:10px 22px;border-radius:10px;font-size:16.5px;font-weight:500;white-space:nowrap;z-index:8}
+
+  /* dashboard */
+  .dash{padding:8px 10px;height:100%;display:flex;flex-direction:column;gap:16px}
+  .stat-row{display:flex;gap:16px}
+  .stat{flex:1;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:0 4px 14px rgba(15,23,42,.05)}
+  .stat .lb{font-size:13px;color:var(--mut);font-weight:600}
+  .stat .vl{font-size:36px;font-weight:800;margin-top:6px;color:var(--ink)}
+  .stat .vl small{font-size:18px;color:var(--mut);font-weight:600}
+  .stat .dl{font-size:12.5px;font-weight:700;color:var(--green);margin-top:4px}
+  .chart-card{flex:1;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px;box-shadow:0 4px 14px rgba(15,23,42,.05)}
+  .chart-card h3{font-size:15px;margin-bottom:14px}
+  .bars{display:flex;align-items:flex-end;gap:26px;height:300px;padding:0 8px}
+  .bgrp{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+  .bar{width:56px;border-radius:8px 8px 3px 3px;height:0;transition:height 1.2s cubic-bezier(.22,.9,.36,1)}
+  .bar.a{background:#cbd5e1}
+  .bar.b{background:var(--brand)}
+  .bgrp .bl{font-size:12px;color:var(--mut);font-weight:600;text-align:center}
+</style>
+</head>
+<body>
+
+<!-- ============ SCENE 1: INTRO ============ -->
+<section class="scene" id="s1">
+  <div class="title-card">
+    <div class="kicker step" data-t="300">High-Rise Solution · Missed Call Text-Back</div>
+    <h1 class="step" data-t="800">You Just Missed a Call.<br><span class="hl">They Just Got a Text.</span></h1>
+    <div class="sub step" data-t="1800">Every unanswered call gets an instant text-back —<br>so the next call they make isn't to your competitor.</div>
+    <div class="flow-pills">
+      <div class="pill step pop" data-t="4000">📞 Missed Call</div><div class="arr step" data-t="4500">→</div>
+      <div class="pill step pop" data-t="4800">💬 Instant Text</div><div class="arr step" data-t="5300">→</div>
+      <div class="pill step pop" data-t="5600">🤖 AI Qualifies</div><div class="arr step" data-t="6100">→</div>
+      <div class="pill step pop" data-t="6400">📅 Booked</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCENE 2: THE MISSED CALL ============ -->
+<section class="scene" id="s2">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="callscr step pop" data-t="400">
+        <div class="cs">
+          <div class="ring-pulse step" data-t="700"></div>
+          <div class="cav">JB</div>
+          <div class="cname">Jake Bennett</div>
+          <div class="cnum">(555) 349-7712</div>
+          <div class="cstat step" data-t="700">Incoming call…</div>
+          <div class="missed-badge step" data-t="3200">📵 Missed Call</div>
+        </div>
+      </div>
+      <div class="panel wf step slide-r" data-t="1600">
+        <h2>📞 You were on a job</h2>
+        <div class="ws">Under a sink, on a roof, mid-install — the phone rings anyway</div>
+        <div class="node"><div class="nic tr">📞</div><div><b>Call comes in</b><span>Jake Bennett, new caller</span></div><div class="st">RINGING</div></div>
+        <div class="node-gap"></div>
+        <div class="node warn step" data-t="3400"><div class="nic rd">📵</div><div><b>Goes unanswered</b><span>No one picks up in time</span></div><div class="st">MISSED</div></div>
+        <div class="node-gap"></div>
+        <div class="node lit step" data-t="4400"><div class="nic tr">⚡</div><div><b>Automation fires instantly</b><span>Before he even sets the phone down</span></div><div class="st">FIRED</div></div>
+      </div>
+    </div>
+  </div></div>
+  <div class="cap step" data-t="5400">78% of callers won't leave a voicemail — they just call the next business.</div>
+</section>
+
+<!-- ============ SCENE 3: INSTANT TEXT-BACK ============ -->
+<section class="scene" id="s3">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="panel wf" style="width:400px">
+        <h2>💬 Sent within seconds</h2>
+        <div class="ws">Workflow: "Missed Call → Instant Text"</div>
+        <div class="node step" data-t="600" data-lite="900"><div class="nic tr">⚡</div><div><b>Trigger: Call missed</b><span>Any unanswered inbound call</span></div><div class="st">FIRED</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="1400" data-lite="1900"><div class="nic sms">💬</div><div><b>Auto text-back sent</b><span>Personalized, feels like a real reply</span></div><div class="st">SENT ✓</div></div>
+      </div>
+      <div class="phone step slide-r" data-t="1200">
+        <div class="scr">
+          <div class="ph-top"><div class="who">Jake Bennett</div><div class="num">Missed call · (555) 349-7712</div></div>
+          <div class="msgs">
+            <div class="day-chip">Today · 2:41 PM</div>
+            <div class="msg out step" data-t="2200">Hey Jake! Sorry we missed your call — we're out on jobs right now. This is Comfort Air, how can we help? Text us here and we'll get right back to you 👍<span class="tm">2:41 PM · Delivered</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="kpi-chip step" data-t="3800">⏱ Text-back sent in <em>8 seconds</em> — before he can dial your competitor</div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 4: LEAD REPLIES / AI QUALIFIES ============ -->
+<section class="scene" id="s4">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="phone">
+        <div class="scr">
+          <div class="ph-top"><div class="who">Jake Bennett</div><div class="num">(555) 349-7712</div></div>
+          <div class="msgs">
+            <div class="msg out">Hey Jake! Sorry we missed your call — this is Comfort Air. How can we help?<span class="tm">2:41 PM</span></div>
+            <div class="msg in step" data-t="900">Hey, our furnace stopped heating this morning. Can someone come out today?<span class="tm">2:44 PM</span></div>
+            <div class="msg out step" data-t="2600">Sorry to hear that, Jake! I can get someone out today. What's the property address, and is anyone without heat right now?<span class="tm">2:44 PM · Auto-reply</span></div>
+            <div class="msg in step" data-t="4800">1420 Birchwood Ln. Yeah my kids are home, it's pretty cold in here.<span class="tm">2:46 PM</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel wf step slide-r" data-t="3400">
+        <h2>🤖 AI qualifies the lead</h2>
+        <div class="ws">Gathers what a dispatcher would ask</div>
+        <div class="node step" data-t="3800"><div class="nic tr">📍</div><div><b>Service address</b><span>1420 Birchwood Ln.</span></div><div class="st">✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="5200"><div class="nic rd">🚨</div><div><b>Urgency flagged</b><span>No heat, kids home → priority</span></div><div class="st">HIGH ✓</div></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 5: BOOKED APPOINTMENT ============ -->
+<section class="scene" id="s5">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split" style="gap:26px">
+      <div class="phone">
+        <div class="scr">
+          <div class="ph-top"><div class="who">Jake Bennett</div><div class="num">(555) 349-7712</div></div>
+          <div class="msgs">
+            <div class="msg in">1420 Birchwood Ln. Yeah my kids are home, it's pretty cold in here.<span class="tm">2:46 PM</span></div>
+            <div class="msg out step" data-t="700">Got it — I'm marking this urgent. We can have a tech there today between <b>4:00–5:00 PM</b>. Want me to lock that in?<span class="tm">2:46 PM · Auto-reply</span></div>
+            <div class="msg in step" data-t="2300">Yes please, thank you!<span class="tm">2:47 PM</span></div>
+            <div class="msg out step" data-t="3600">You're booked! ✅ Today, 4–5 PM at 1420 Birchwood Ln. We'll text when the tech is on the way. Hang in there, Jake 🔧<span class="tm">2:47 PM · Auto-reply</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel cal step slide-r" data-t="1200">
+        <h2>📅 Today's Schedule <span>Priority slot added</span></h2>
+        <div class="cal-grid">
+          <div class="hd" style="border-left:none"></div><div class="hd">10 AM</div><div class="hd">12 PM</div><div class="hd">2 PM</div><div class="hd">4 PM</div><div class="hd">6 PM</div>
+          <div class="tm-lbl">Tech 1</div><div class="cell"><div class="appt g">Job A</div></div><div class="cell"></div><div class="cell"><div class="appt g">Job B</div></div><div class="cell"></div><div class="cell"></div>
+          <div class="tm-lbl">Tech 2</div><div class="cell"></div><div class="cell"><div class="appt g">Job C</div></div><div class="cell"></div><div class="cell"><div class="appt step pop" data-t="4600">4:00<b>Jake Bennett · URGENT</b></div></div><div class="cell"></div>
+        </div>
+        <div class="ws step" data-t="5400" style="margin-top:14px;font-size:13.5px">🔔 Confirmation + on-the-way text sent automatically — no dispatcher needed</div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 6: CALL LOG → PIPELINE ============ -->
+<section class="scene" id="s6">
+  <div class="crm">
+    <aside class="sidebar">
+      <div class="logo"><div class="mark">⚡</div>High-Rise Solution</div>
+      <div class="nav">
+        <div>🏠 Dashboard</div>
+        <div>📋 Opportunities</div>
+        <div class="sel">📞 Call Log</div>
+        <div>🔁 Automations</div>
+        <div>📅 Calendar</div>
+        <div>👥 Contacts</div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar"><span class="pg">Call Log</span><span class="crumb">Today</span><span class="spacer"></span><div class="avatar">HS</div></div>
+      <div class="content">
+        <div class="clog">
+          <div class="crow hd"><div class="c-name">Caller</div><div class="c-num">Number</div><div class="c-time">Time</div><div></div></div>
+          <div class="crow"><div class="c-name">Ana Reyes</div><div class="c-num">(555) 201-8834</div><div class="c-time">11:02 AM</div><div class="badge booked">BOOKED</div></div>
+          <div class="crow hero step pop" data-t="1000"><div class="c-name">Jake Bennett</div><div class="c-num">(555) 349-7712</div><div class="c-time">2:41 PM</div><div class="badge miss step" data-t="1400">MISSED</div></div>
+          <div class="crow"><div class="c-name">Sam Ortiz</div><div class="c-num">(555) 774-1290</div><div class="c-time">1:15 PM</div><div class="badge text">TEXTED</div></div>
+        </div>
+        <div class="toast step slide-r" data-t="2600">
+          <div class="ic">✓</div>
+          <div><b>Missed call recovered</b><span>Jake Bennett · texted, qualified &amp; booked in 6 minutes</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cap step" data-t="4000">Every missed call is tracked — you can see exactly which ones turned into jobs.</div>
+</section>
+
+<!-- ============ SCENE 7: NO REPLY? FOLLOWS UP ============ -->
+<section class="scene" id="s7">
+  <div class="crm"><div class="main" style="background:var(--bg)">
+    <div class="split">
+      <div class="panel wf" style="width:460px">
+        <h2>🔁 Silence? It tries again.</h2>
+        <div class="ws">Not every caller replies right away</div>
+        <div class="node step" data-t="500" data-done="700"><div class="nic sms">💬</div><div><b>Text-back sent</b><span>Within seconds of the missed call</span></div><div class="st">SENT ✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="1200" data-lite="1800"><div class="nic wt">⏳</div><div><b>Wait 1 hour</b><span>Only continues if no reply</span></div><div class="st">…</div></div>
+        <div class="node-gap"></div>
+        <div class="node step" data-t="2400" data-lite="3200"><div class="nic sms">💬</div><div><b>Follow-up text sent</b><span>“Still there? Happy to help whenever”</span></div><div class="st">SENT ✓</div></div>
+        <div class="node-gap"></div>
+        <div class="node step lit" data-t="3800"><div class="nic br">🔔</div><div><b>Team notified either way</b><span>So a human can always step in</span></div><div class="st">✓</div></div>
+      </div>
+    </div>
+    <div class="kpi-chip step" data-t="5000">📈 Recovering even <em>1 in 5</em> missed calls pays for this system many times over</div>
+  </div></div>
+</section>
+
+<!-- ============ SCENE 8: RESULTS DASHBOARD ============ -->
+<section class="scene" id="s8">
+  <div class="crm">
+    <aside class="sidebar">
+      <div class="logo"><div class="mark">⚡</div>High-Rise Solution</div>
+      <div class="nav">
+        <div class="sel">🏠 Dashboard</div>
+        <div>📋 Opportunities</div>
+        <div>📞 Call Log</div>
+        <div>🔁 Automations</div>
+        <div>📅 Calendar</div>
+        <div>👥 Contacts</div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar"><span class="pg">Dashboard</span><span class="crumb">Missed Call Text-Back · last 30 days</span><span class="spacer"></span><div class="avatar">HS</div></div>
+      <div class="content"><div class="dash">
+        <div class="stat-row">
+          <div class="stat step" data-t="400"><div class="lb">Missed calls</div><div class="vl"><span data-count="94" data-dur="1400">0</span></div><div class="dl">caught, every one</div></div>
+          <div class="stat step" data-t="800"><div class="lb">Text-back response rate</div><div class="vl"><span data-count="61" data-dur="1600">0</span><small> %</small></div><div class="dl">callers who text back</div></div>
+          <div class="stat step" data-t="1200"><div class="lb">Jobs booked</div><div class="vl"><span data-count="37" data-dur="1600">0</span></div><div class="dl">from calls that used to vanish</div></div>
+          <div class="stat step" data-t="1600"><div class="lb">Revenue recovered</div><div class="vl">$<span data-count="18500" data-dur="1800">0</span></div><div class="dl">from missed calls alone</div></div>
+        </div>
+        <div class="chart-card step" data-t="2400">
+          <h3>Missed calls recovered — before vs. with Text-Back Automation</h3>
+          <div class="bars">
+            <div class="bgrp"><div class="bar a" data-h="30"></div><div class="bl">Month 1<br>(before)</div></div>
+            <div class="bgrp"><div class="bar a" data-h="36"></div><div class="bl">Month 2<br>(before)</div></div>
+            <div class="bgrp"><div class="bar b" data-h="150"></div><div class="bl">Month 3<br>(automated)</div></div>
+            <div class="bgrp"><div class="bar b" data-h="196"></div><div class="bl">Month 4<br>(automated)</div></div>
+            <div class="bgrp"><div class="bar b" data-h="228"></div><div class="bl">Month 5<br>(automated)</div></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCENE 9: OUTRO ============ -->
+<section class="scene" id="s9">
+  <div class="title-card">
+    <div class="kicker step" data-t="300">High-Rise Solution · Missed Call Text-Back</div>
+    <h1 class="step" data-t="800" style="font-size:52px">Every Missed Call Is Now<br><span class="hl">A Second Chance.</span></h1>
+    <div class="sub step" data-t="2200">Stop losing jobs to voicemail —<br>let's put this to work for you.</div>
+    <div class="cta-btn step pop" data-t="4200">📅 Book Your Text-Back Setup Call</div>
+  </div>
+</section>
+
+<script>
+const SCENE_IDS = ['s1','s2','s3','s4','s5','s6','s7','s8','s9'];
+let DUR = [13000,10000,13000,11000,11000,11000,12000,13000,12000];
+
+function animateCount(el, target, dur){
+  let acc = -1, last = null;
+  function tick(now){
+    if(acc < 0){ acc = 0; }
+    else { const d = now - last; acc += (d > 0 ? d : 1000/60); }
+    last = now;
+    const p = Math.min(acc/dur, 1);
+    const eased = 1-Math.pow(1-p,3);
+    el.textContent = Math.round(target*eased).toLocaleString();
+    if(p<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function playScene(idx){
+  const sc = document.getElementById(SCENE_IDS[idx]);
+  document.querySelectorAll('.scene.active').forEach(s=>s.classList.remove('active'));
+  sc.classList.add('active');
+  sc.querySelectorAll('[data-t]').forEach(el=>{
+    const t = +el.dataset.t;
+    setTimeout(()=>{
+      el.classList.add('on');
+      el.querySelectorAll('[data-count]').forEach(cEl=>animateCount(cEl,+cEl.dataset.count,+cEl.dataset.dur||1500));
+      el.querySelectorAll('.bar[data-h]').forEach(b=>{ requestAnimationFrame(()=>b.style.height=b.dataset.h+'px'); });
+    }, t);
+  });
+  sc.querySelectorAll('[data-lite]').forEach(el=>setTimeout(()=>el.classList.add('lit'), +el.dataset.lite));
+  sc.querySelectorAll('[data-done]').forEach(el=>setTimeout(()=>{el.classList.remove('lit');el.classList.add('done');}, +el.dataset.done));
+}
+
+window.startDemo = function(durations){
+  if(durations && durations.length===SCENE_IDS.length) DUR = durations;
+  let t = 0;
+  SCENE_IDS.forEach((id,i)=>{
+    setTimeout(()=>playScene(i), t);
+    t += DUR[i];
+  });
+  window.__demoTotal = t;
+  return t;
+};
+</script>
+</body>
+</html>
