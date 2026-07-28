@@ -18,7 +18,7 @@ Scene duration = 400ms + clip + 1300ms. VO offset = scene start + 0.4s.
 Generated individually (Sterling seed_audio):
 - Beat 1: 20.925s — https://d8j0ntlcm91z4.cloudfront.net/user_2vdkYecoxD7UgVFOoH1GqkisXdC/hf_20260728_232323_48454d0c-090d-4dc2-82de-d2f145837e9b.wav
 - Beat 2: 10.055s — https://d8j0ntlcm91z4.cloudfront.net/user_2vdkYecoxD7UgVFOoH1GqkisXdC/hf_20260728_232341_775965fa-f7e0-4903-b68c-9d0abc7ff5b9.wav
-- Beat 3: pending job 92a318bc-815d-4adf-932b-98ef9e116b48 (check job_display for URL/duration when done)
+- Beat 3: 10.935s — https://d8j0ntlcm91z4.cloudfront.net/user_2vdkYecoxD7UgVFOoH1GqkisXdC/hf_20260728_232426_92a318bc-815d-4adf-932b-98ef9e116b48.wav
 
 Hit grace_daily_limit_reached generating beat 4. Same pattern as social-autopilot video.
 
