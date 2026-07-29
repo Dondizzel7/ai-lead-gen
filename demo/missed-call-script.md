@@ -13,17 +13,22 @@ Scene duration = 400ms + clip + 1300ms. VO offset = scene start + 0.4s.
 8. "The results: dozens of missed calls recovered every month, real jobs booked from calls that used to just vanish, and thousands of dollars in revenue that would have gone to a competitor instead."
 9. "That's Missed Call Text-Back by High-Rise Solution. Every missed call becomes a second chance. Ready to stop losing jobs to voicemail? Let's talk."
 
-## Status: not yet generated (built after Review video hit daily VO limit)
+## Progress (2026-07-29) — COMPLETE
 
-Generate all 9 clips (seed_audio, voice Sterling dc382508-c8bd-443c-8cb2-46e57b8d2e6f) — either
-individually if the daily cap allows, or via the single-long-clip strategy (see
-social-script.md / review-script.md for that pattern) if it doesn't. Then follow the standard
-finish: compute scene durations, render missed-call-demo.html via frames.mjs, push silent
-master, Descript assemble, publish 720p, download, mux clean video+Descript audio to strip
-watermark, encode missed-call-ghl-720p.mp4 + missed-call-ghl-480p-sms.mp4 +
-missed-call-audio.mp3, commit to claude/ghl-workflow-demo-video-b9hp4l, SendUserFile + share
-links.
+Generated via single-long-clip strategy (beats 1-3 individually, beats 4-9 combined):
+- Beat 1: 16.77s — https://d8j0ntlcm91z4.cloudfront.net/user_2vdkYecoxD7UgVFOoH1GqkisXdC/hf_20260729_181534_2aba0efd-f126-4612-bff2-20824ffcb824.wav
+- Beat 2: 9.17s — https://d8j0ntlcm91z4.cloudfront.net/user_2vdkYecoxD7UgVFOoH1GqkisXdC/hf_20260729_182038_2616fe63-9df9-471d-9af7-b8e22519e7ca.wav
+- Beat 3: 13.3s — https://d8j0ntlcm91z4.cloudfront.net/user_2vdkYecoxD7UgVFOoH1GqkisXdC/hf_20260729_182547_68965fbc-a82b-4b18-bac1-06f07aecfa04.wav
+- Beats 4-9 combined: 40.25s — https://d8j0ntlcm91z4.cloudfront.net/user_2vdkYecoxD7UgVFOoH1GqkisXdC/hf_20260729_184101_e421176c-5361-4e68-bd9a-1b839bbabb92.wav
 
-This is the 4th video in the queue — build it AFTER review-automation-demo.html is fully
-delivered (per user instruction: reviews first, then missed call text-back, no check-ins
-needed in between — proceed straight through both).
+Scene durations (ms): [18470, 10870, 15000, 9589, 6181, 5429, 5100, 6761, 8880] — total 86.3s.
+Offsets (s): beat1=0.4, beat2=18.87, beat3=29.74, combined4-9=44.73.
+
+Rendered missed-call-demo.mp4 via frames.mjs, pushed silent master, Descript project
+5aa17910-0963-4039-a159-a51169c7cd6e, composition fe79ee0b-4c1d-4ea9-aa69-13c593a9d0de,
+published 720p. Share URL: https://share.descript.com/view/Ykgma5qZTdD
+
+Muxed clean video + Descript audio to strip watermark → missed-call-narrated.mp4. Verified
+sync via volumedetect at t=2/20/33/48/60 (all -19 to -21dB, speech present). Encoded
+missed-call-ghl-720p.mp4 (2.65MB), missed-call-ghl-480p-sms.mp4 (1.55MB), missed-call-audio.mp3
+(1.35MB). All delivered.
